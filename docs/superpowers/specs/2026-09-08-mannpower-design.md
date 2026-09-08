@@ -1,11 +1,15 @@
-# Workout Tracker Design
+# Mannpower Design
 
 Date: 2026-09-08
-Status: approved in brainstorming, awaiting written review
+Status: approved
 
 ## Purpose
 
-A phone app for Jeremy to log strength workouts (three per week with a trainer), daily body weight, daily steps, cardio sessions, and pain or discomfort, and to show trends that answer one question: am I getting stronger and building muscle while losing weight? A weekly email, written by Claude from the logged data, summarizes the week, calls out highlights, and makes specific recommendations.
+Mannpower is a phone app for Jeremy to log strength workouts (three per week with a trainer, plus solo sessions at Goodlife when travelling), daily body weight, daily steps, cardio sessions including desk treadmill walking at the office, and pain or discomfort, and to show trends that answer one question: am I getting stronger and building muscle while losing weight? A weekly email, written by Claude from the logged data, summarizes the week, calls out highlights, and makes specific recommendations.
+
+## Look and feel
+
+Strong and vibrant. Dark charcoal background (near black) with one hot accent colour (electric orange, `#FF5A1F`) used for primary actions, PR flashes, and chart highlights, and a cool secondary (electric cyan) for body weight and cardio series. Headings in a heavy condensed display face (Bebas Neue or similar via Google Fonts, system fallback), body text in a clean sans. Big numbers: the current lift, today's weight, and this week's volume are the largest things on their screens. Tap targets at least 48 px so sets can be entered with a sweaty thumb. Subtle motion only: a PR pulse and a check on save. App name and icon: "MANNPOWER" wordmark, orange on charcoal.
 
 ## Decisions made
 
@@ -14,6 +18,9 @@ A phone app for Jeremy to log strength workouts (three per week with a trainer),
 | Phone and install | Android, installed from the web as a PWA via Chrome "Add to home screen" |
 | Units | Pounds for lifts and body weight |
 | Routine | Exercises vary every session, so the app is search-and-add, not template based |
+| Trainer or solo | Each workout is flagged with or without trainer. Solo sessions happen at Goodlife when out of town |
+| Cardio | Several sessions per day are normal, including on-and-off desk treadmill walking at the office |
+| Name | Mannpower |
 | Steps | Entered manually once a day. A web app cannot read Google Fit or Health Connect |
 | Data location | Phone storage is the source of truth. A private GitHub repo holds a synced copy that doubles as backup and feeds the weekly report |
 | Hosting | GitHub Pages under the jmannella account |
@@ -24,8 +31,8 @@ A phone app for Jeremy to log strength workouts (three per week with a trainer),
 
 ### Repositories
 
-- `jmannella/workout-app` (public). App source. A GitHub Actions workflow builds on every push to `main` and publishes to `https://jmannella.github.io/workout-app/`. Public because GitHub Pages on a free account only serves public repos. No personal data lives here.
-- `jmannella/workout-data` (private). One file, `data.json`, the full dataset. Written by the app, read by the app and by the weekly report script.
+- `jmannella/mannpower` (public). App source. A GitHub Actions workflow builds on every push to `main` and publishes to `https://jmannella.github.io/mannpower/`. Public because GitHub Pages on a free account only serves public repos. No personal data lives here.
+- `jmannella/mannpower-data` (private). One file, `data.json`, the full dataset. Written by the app, read by the app and by the weekly report script.
 
 ### App
 
@@ -51,7 +58,7 @@ Modules, each independently testable:
 ### Weekly report
 
 - A scheduled task on Jeremy's desktop Claude app runs Sunday 7 pm Eastern. If the desktop was off, it runs at next launch.
-- The task prompt tells Claude to run `npm run report` in the local clone of `workout-app`. The script fetches `data.json` from the private repo using a token stored in a local `.env` (never committed), computes the digest for the week ending that Sunday, and prints Markdown plus a JSON block of facts.
+- The task prompt tells Claude to run `npm run report` in the local clone of `mannpower`. The script fetches `data.json` from the private repo using a token stored in a local `.env` (never committed), computes the digest for the week ending that Sunday, and prints Markdown plus a JSON block of facts.
 - Claude reads the digest, writes the email (summary, highlights, recommendations, pain section if applicable), and sends it to jeremymannella@gmail.com through the connected Gmail account. Plain prose, no dashes used as sentence connectors.
 
 ## Data model
@@ -61,18 +68,20 @@ All records live in IndexedDB and serialize to a single JSON document for sync. 
 ```
 Exercise      { id, name, primary: MuscleGroup, secondary: MuscleGroup[], custom: boolean }
 MuscleGroup   = chest | back | shoulders | biceps | triceps | quads | hamstrings | glutes | calves | core
-Workout       { id, date, notes?, entries: WorkoutEntry[], createdAt, updatedAt }
+Workout       { id, date, withTrainer: boolean, notes?, entries: WorkoutEntry[], createdAt, updatedAt }
 WorkoutEntry  { id, exerciseId, sets: SetRecord[] }
 SetRecord     { weight: number (lbs), reps: number, warmup: boolean }
 DayRecord     { date, bodyWeight?: number, steps?: number, cardio: CardioSession[], updatedAt }
 CardioSession { id, type: string, minutes: number, distance?: number, notes? }
+              Built-in types: Desk treadmill, Treadmill, Walk, Bike, Elliptical, Rower, Stairs, Swim, Other.
+              Custom types are free text and remembered for the picker.
 PainEntry     { id, date, area: BodyArea, severity: 1..5, limited: boolean, note?,
                 workoutId?, exerciseId?, createdAt }
 BodyArea      = neck | shoulder_left | shoulder_right | elbow_left | elbow_right | wrist_left
               | wrist_right | upper_back | lower_back | hip_left | hip_right | knee_left
               | knee_right | ankle_left | ankle_right | other
-Settings      { githubToken?, dataRepo (default "jmannella/workout-data"), targetBodyWeight?,
-                dailyStepGoal?, lastSyncedAt?, lastSyncSha?, syncStatus }
+Settings      { githubToken?, dataRepo (default "jmannella/mannpower-data"), targetBodyWeight?,
+                dailyStepGoal?, defaultWithTrainer (default true), lastSyncedAt?, lastSyncSha?, syncStatus }
 Meta          { schemaVersion: 1, updatedAt }
 ```
 
@@ -86,13 +95,14 @@ Bottom tab bar: Today, Workout, History, Trends. Gear icon in the header opens S
 
 - Date at top, defaults to today, tap to change.
 - Body weight field, steps field, both save on blur.
-- Cardio list for the day with an add button (type picker with recent types first, minutes, optional distance).
+- Cardio list for the day with an add button (type picker with recent types first, minutes, optional distance). Any number of sessions per day. A "Desk treadmill" quick-add chip sits above the list because it is used most: tap, enter minutes, done. A second tap on the same day adds another session rather than editing the first, since office walking happens in bursts. The day's cardio total in minutes shows at the top of the list.
 - "Log pain" button opens the pain sheet tied to this date with no exercise.
 - "Start workout" button, or "Continue workout" if a workout exists for the selected date.
 - Week-so-far strip: workouts done this week, average steps versus goal, body weight 7-day average with an up or down arrow.
 
 ### Workout
 
+- A "With trainer" / "Solo" toggle at the top of the workout, defaulting to the setting `defaultWithTrainer`. Changing it on a workout does not change the default; the default is changed in Settings, so a travel week is one flip.
 - Search box over all exercises (built-in plus custom). Results grouped by muscle group. An "add custom exercise" row appears when the search has no exact match.
 - Each added exercise card shows a "Last time" line with the working sets from the most recent workout containing that exercise, and a small flare icon with the exercise's pain flare rate if it is above zero.
 - Set rows: weight, reps, warm-up toggle. "Add set" copies the previous row. Swipe or long press to delete a set. Reorder exercises by drag handle.
@@ -102,7 +112,7 @@ Bottom tab bar: Today, Workout, History, Trends. Gear icon in the header opens S
 
 ### History
 
-- Workouts listed newest first with date, exercise count, total volume, PR count, and a pain badge if any pain was logged that day.
+- Workouts listed newest first with date, a trainer or solo tag, exercise count, total volume, PR count, and a pain badge if any pain was logged that day. A filter chip row switches between all, trainer, and solo.
 - Tap a workout to view or edit it in the same Workout screen.
 - Tap an exercise name anywhere to open its history: every set ever logged, best set, estimated 1RM chart over time, relative strength, and pain flare rate.
 
@@ -115,13 +125,15 @@ Charts, each with 4 week, 12 week, and all time ranges:
 - Weekly sets per muscle group, with the 10 set floor marked.
 - Estimated 1RM over time for an exercise picked from a dropdown of everything logged.
 - Relative strength over time for the same exercise.
-- Weekly steps total against the goal, and weekly cardio minutes.
+- Weekly steps total against the goal, and weekly cardio minutes stacked by type so desk treadmill time is visible separately from gym cardio.
+- Trainer versus solo: workouts per week split by type, and average volume per session for each, so solo sessions can be compared against trainer sessions.
 - Pain timeline: one row per body area, dots sized by severity.
 
 ### Settings
 
 - GitHub sync: token field, repo name, status dot (synced, pending, error, not set up) with last sync time and last error, "Sync now" button.
 - Goals: target body weight, daily step goal.
+- Default workout mode: with trainer or solo.
 - Backup: export downloads the JSON document; import reads a file and replaces local data after a confirmation.
 - Custom exercises: list, rename, change muscle groups, delete (blocked if the exercise has logged sets).
 
@@ -141,7 +153,8 @@ All functions in `stats/` are pure and take arrays of records plus a date or ran
 - **Relative strength:** exercise e1RM divided by the 7-day average body weight on that workout's date.
 - **Stalled lift:** an exercise where the last two sessions used the same top working weight and every working set hit the same or more reps as the previous session. Report suggests adding weight.
 - **Steps:** daily value, weekly total and mean over days with an entry, days at or above goal.
-- **Cardio:** weekly minutes and session count.
+- **Cardio:** weekly minutes and session count, overall and per type. Desk treadmill minutes are reported on their own line because they accumulate across the work day and are the easiest lever to pull on weight loss.
+- **Trainer versus solo:** per week, count of each; over the range, mean volume and mean working sets per session for each, and the share of solo sessions where volume on shared exercises was within 90 percent of the last trainer session. This tells the report whether solo sessions are keeping pace.
 - **Pain flare rate (exercise):** number of workouts containing the exercise that have a pain entry linked to it, divided by the number of workouts containing the exercise.
 - **Pain patterns (area):** for each body area with 2 or more entries: exercises co-occurring in the same workout ranked by co-occurrence rate versus base rate; whether entries followed a week where volume rose more than 20 percent over the prior week; severity trend over the last 4 entries; days since last entry.
 
@@ -149,9 +162,9 @@ All functions in `stats/` are pure and take arrays of records plus a date or ran
 
 Produced for the week ending the Sunday the task runs.
 
-1. **Summary:** workouts completed, total volume and change versus prior week, body weight 7-day average and change, average steps and days at goal, cardio minutes.
+1. **Summary:** workouts completed (trainer and solo counts), total volume and change versus prior week, body weight 7-day average and change, average steps and days at goal, cardio minutes with desk treadmill called out.
 2. **Highlights:** PRs with old and new numbers, largest e1RM gain, best step day, consistency streak.
-3. **Recommendations:** three to five items grounded in the facts block: stalled lifts with a suggested increment (5 lb for dumbbell and upper body barbell lifts, 10 lb for lower body barbell lifts), under-trained groups, weight change outside the healthy band, step goal shortfall, cardio absent for the week.
+3. **Recommendations:** three to five items grounded in the facts block: stalled lifts with a suggested increment (5 lb for dumbbell and upper body barbell lifts, 10 lb for lower body barbell lifts), under-trained groups, weight change outside the healthy band, step goal shortfall, cardio absent for the week, and solo sessions falling well short of trainer sessions in volume or set count (with a concrete suggestion for what to add on the next solo day).
 4. **Pain:** only when entries exist. Patterns from the stats module, phrased as things to raise with the trainer. No diagnosis or treatment advice.
 
 The report script prints Markdown sections plus a fenced JSON block of the facts. Claude writes the email in plain prose without dash constructions, sends it, and replies in the task log with the subject line.
@@ -167,6 +180,7 @@ The report script prints Markdown sections plus a fenced JSON block of the facts
 
 - Vitest unit tests for every function in `stats/`, including edge cases: no data, warm-ups only, one workout, week boundaries, missing body weight days, pain with no linked exercise.
 - Unit tests for `sync/` merge logic and SHA conflict retry with a mocked fetch.
+- Unit tests for trainer versus solo comparison and per-type cardio totals, including a day with four desk treadmill sessions.
 - A test that validates the built-in exercise library: unique ids, unique names, valid muscle groups, no exercise listing the same group as primary and secondary.
 - A test running the report script on a fixture dataset and checking the digest sections and facts JSON.
 - Manual verification: build, serve locally, exercise every screen in the desktop browser at phone width, then install on the phone from the Pages URL and log a real session.
