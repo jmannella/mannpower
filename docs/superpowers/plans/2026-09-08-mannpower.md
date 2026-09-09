@@ -6,7 +6,7 @@
 
 **Architecture:** A Vite + React + TypeScript single page app. IndexedDB (Dexie) on the phone is the source of truth; a pure `stats/` module turns raw records into numbers; a `sync/` module mirrors the dataset to `data.json` in a private GitHub repo through the Contents API. A Node script reuses `stats/` to print a weekly digest that a desktop scheduled task hands to Claude for the email.
 
-**Tech Stack:** Vite, React 18, TypeScript, react-router-dom (hash router), Dexie 4 + dexie-react-hooks, Recharts, vite-plugin-pwa, Vitest + Testing Library + fake-indexeddb, tsx, sharp (icon generation only), GitHub Actions, GitHub Pages.
+**Tech Stack:** Vite, React 19, TypeScript, react-router-dom (hash router), Dexie 4 + dexie-react-hooks, Recharts, vite-plugin-pwa, Vitest + Testing Library + fake-indexeddb, tsx, sharp (icon generation only), GitHub Actions, GitHub Pages.
 
 **Spec:** `docs/superpowers/specs/2026-09-08-mannpower-design.md`
 
