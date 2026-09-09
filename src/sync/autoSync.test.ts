@@ -45,4 +45,21 @@ describe('createAutoSync', () => {
     expect(run).toHaveBeenCalledTimes(1)
     auto.stop()
   })
+
+  test('stop cancels a run queued during an in-flight run', async () => {
+    let resolveFirst: () => void = () => {}
+    const run = vi.fn()
+      .mockImplementationOnce(() => new Promise<void>((r) => { resolveFirst = r }))
+      .mockImplementation(async () => {})
+    let trigger: () => void = () => {}
+    const auto = createAutoSync({ run, delayMs: 10, subscribe: (cb) => { trigger = cb; return () => {} }, target: new EventTarget() })
+    trigger()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(run).toHaveBeenCalledTimes(1)
+    trigger() // queued behind the in-flight run
+    auto.stop()
+    resolveFirst()
+    await vi.advanceTimersByTimeAsync(50)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
 })

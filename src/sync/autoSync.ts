@@ -19,8 +19,10 @@ export function createAutoSync({ run, delayMs = 5000, subscribe = onDataChange, 
   let timer: ReturnType<typeof setTimeout> | undefined
   let running = false
   let queued = false
+  let stopped = false
 
   const kick = async (): Promise<void> => {
+    if (stopped) return
     if (running) {
       queued = true
       return
@@ -32,14 +34,17 @@ export function createAutoSync({ run, delayMs = 5000, subscribe = onDataChange, 
       // Status is recorded by the engine. Never surface here.
     } finally {
       running = false
-      if (queued) {
+      if (queued && !stopped) {
         queued = false
         schedule()
+      } else {
+        queued = false
       }
     }
   }
 
   const schedule = (): void => {
+    if (stopped) return
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => { timer = undefined; void kick() }, delayMs)
   }
@@ -52,6 +57,7 @@ export function createAutoSync({ run, delayMs = 5000, subscribe = onDataChange, 
     schedule,
     kick,
     stop() {
+      stopped = true
       if (timer) clearTimeout(timer)
       unsubscribe()
       eventTarget?.removeEventListener('online', onOnline)
