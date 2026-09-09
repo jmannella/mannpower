@@ -29,4 +29,10 @@ describe('report script', () => {
     expect(r.code).toBe(1)
     expect(r.err).toContain('MANNPOWER_TOKEN')
   })
+
+  test('a --week flag without a value is rejected', () => {
+    const r = run(['--file', 'scripts/fixtures/week.json', '--week'])
+    expect(r.code).toBe(1)
+    expect(r.err).toContain('Bad --week value')
+  })
 }, 30000)

@@ -4,14 +4,18 @@ import { validateDataset } from '../src/domain/validate'
 import { digestMarkdown, weeklyDigest } from '../src/stats/digest'
 import { addDays, parseISO, todayISO, weekStart } from '../src/domain/dates'
 
+class ReportError extends Error {}
+
 function fail(message: string): never {
-  process.stderr.write(`${message}\n`)
-  process.exit(1)
+  throw new ReportError(message)
 }
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name)
-  return i >= 0 ? process.argv[i + 1] : undefined
+  if (i < 0) return undefined
+  const next = process.argv[i + 1]
+  if (!next || next.startsWith('--')) return ''
+  return next
 }
 
 /** Sunday of the most recent completed week: today if today is Sunday, otherwise last Sunday. */
@@ -32,7 +36,8 @@ async function loadRaw(): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const weekEndDate = arg('--week') ?? defaultWeekEnd()
+  const weekArg = arg('--week')
+  const weekEndDate = weekArg === undefined ? defaultWeekEnd() : weekArg
   if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEndDate)) fail(`Bad --week value: ${weekEndDate}`)
   let parsed: unknown
   try {
@@ -45,4 +50,7 @@ async function main(): Promise<void> {
   process.stdout.write(digestMarkdown(weeklyDigest(v.dataset, weekEndDate)) + '\n')
 }
 
-main().catch((e) => fail(e instanceof Error ? e.message : String(e)))
+main().catch((e) => {
+  process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`)
+  process.exitCode = 1
+})
