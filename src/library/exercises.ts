@@ -120,12 +120,13 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('farmers-carry', "Farmer's Carry", 'core', ['back']),
 ]
 
-const LOWER: MuscleGroup[] = ['quads', 'hamstrings', 'glutes']
-const BIG_LOWER = /Squat|Deadlift|Hip Thrust|Leg Press|Hack|Good Morning|Rack Pull/
+/** Lifts that take a 10 lb jump when stalled: big lower body barbell and machine compound lifts. Everything else gets 5 lb. */
+const BIG_LIFT_IDS = new Set([
+  'back-squat', 'front-squat', 'box-squat', 'smith-machine-squat', 'belt-squat', 'leg-press', 'hack-squat',
+  'deadlift', 'sumo-deadlift', 'romanian-deadlift', 'stiff-leg-deadlift', 'rack-pull',
+  'hip-thrust', 'barbell-glute-bridge', 'good-morning',
+])
 
-/** Weight to add when a lift has stalled: 10 lb for big lower body lifts, 5 lb otherwise. */
 export function suggestedIncrement(exercise: Exercise): 5 | 10 {
-  if (LOWER.includes(exercise.primary) && BIG_LOWER.test(exercise.name)) return 10
-  if (exercise.id === 'deadlift') return 10
-  return 5
+  return BIG_LIFT_IDS.has(exercise.id) ? 10 : 5
 }

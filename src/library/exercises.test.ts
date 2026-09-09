@@ -33,8 +33,20 @@ describe('built-in exercise library', () => {
     const squat = BUILTIN_EXERCISES.find((e) => e.id === 'back-squat')!
     const legExt = BUILTIN_EXERCISES.find((e) => e.id === 'leg-extension')!
     const bench = BUILTIN_EXERCISES.find((e) => e.id === 'barbell-bench-press')!
+    const goblet = BUILTIN_EXERCISES.find((e) => e.id === 'goblet-squat')!
+    const bulgSplit = BUILTIN_EXERCISES.find((e) => e.id === 'bulgarian-split-squat')!
+    const barbellGlute = BUILTIN_EXERCISES.find((e) => e.id === 'barbell-glute-bridge')!
+    const rackPull = BUILTIN_EXERCISES.find((e) => e.id === 'rack-pull')!
+    const deadlift = BUILTIN_EXERCISES.find((e) => e.id === 'deadlift')!
+    const rdl = BUILTIN_EXERCISES.find((e) => e.id === 'romanian-deadlift')!
     expect(suggestedIncrement(squat)).toBe(10)
     expect(suggestedIncrement(legExt)).toBe(5)
     expect(suggestedIncrement(bench)).toBe(5)
+    expect(suggestedIncrement(goblet)).toBe(5)
+    expect(suggestedIncrement(bulgSplit)).toBe(5)
+    expect(suggestedIncrement(barbellGlute)).toBe(10)
+    expect(suggestedIncrement(rackPull)).toBe(10)
+    expect(suggestedIncrement(deadlift)).toBe(10)
+    expect(suggestedIncrement(rdl)).toBe(10)
   })
 })
