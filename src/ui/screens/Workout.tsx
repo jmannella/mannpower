@@ -47,41 +47,23 @@ export default function Workout() {
   const current = async (): Promise<WorkoutRecord> => (await getWorkoutByDate(date)) ?? draft()
   const update = async (fn: (w: WorkoutRecord) => WorkoutRecord) => saveWorkout(fn(await current()))
 
-  // Entries also live in local state so edits render right away: the DB write
-  // above is real IndexedDB and settles a tick or two after the click, and the
-  // live query that would otherwise drive this list lags behind that. This
-  // mirror is reconciled from the live query whenever it catches up.
-  const [localEntries, setLocalEntries] = useState<WorkoutEntry[]>(workout?.entries ?? [])
-  useEffect(() => { setLocalEntries(workout?.entries ?? []) }, [workout])
-
-  const applyEntries = (transform: (entries: WorkoutEntry[]) => WorkoutEntry[]) => {
-    setLocalEntries(transform)
-    void (async () => {
-      const w = await current()
-      await saveWorkout({ ...w, entries: transform(w.entries) })
-    })()
-  }
-
   const addExercise = (exerciseId: string) => {
-    const id = newId()
-    applyEntries((es) => [...es, { id, exerciseId, sets: [] }])
+    void update((w) => ({ ...w, entries: [...w.entries, { id: newId(), exerciseId, sets: [] }] }))
     setQuery('')
   }
-  const removeEntry = (id: string) => applyEntries((es) => es.filter((e) => e.id !== id))
+  const removeEntry = (id: string) => update((w) => ({ ...w, entries: w.entries.filter((e) => e.id !== id) }))
   const moveEntry = (id: string, dir: -1 | 1) =>
-    applyEntries((es) => {
-      const i = es.findIndex((e) => e.id === id)
+    update((w) => {
+      const i = w.entries.findIndex((e) => e.id === id)
       const j = i + dir
-      if (i < 0 || j < 0 || j >= es.length) return es
-      const next = [...es]
-      ;[next[i], next[j]] = [next[j], next[i]]
-      return next
+      if (i < 0 || j < 0 || j >= w.entries.length) return w
+      const entries = [...w.entries]
+      ;[entries[i], entries[j]] = [entries[j], entries[i]]
+      return { ...w, entries }
     })
   const setSets = async (entryId: string, sets: SetRecord[]) => {
-    const transform = (es: WorkoutEntry[]) => es.map((e) => (e.id === entryId ? { ...e, sets } : e))
-    setLocalEntries(transform)
     const w = await current()
-    const next = { ...w, entries: transform(w.entries) }
+    const next = { ...w, entries: w.entries.map((e) => (e.id === entryId ? { ...e, sets } : e)) }
     await saveWorkout(next)
     const entry = next.entries.find((e) => e.id === entryId)
     if (entry && prsForWorkout(workouts, next).some((p) => p.exerciseId === entry.exerciseId)) setPulseEntry(entryId)
@@ -94,7 +76,7 @@ export default function Workout() {
   const grouped = MUSCLE_GROUPS.map((g) => ({ g, items: results.filter((e) => e.primary === g) })).filter((x) => x.items.length)
 
   const w = workout ?? draft()
-  const entries = localEntries
+  const entries = workout?.entries ?? []
   const prs = workout ? prsForWorkout(workouts, workout) : []
   const load = workout ? workoutMuscleLoad(workout, exMap) : null
   const workoutPain = pain.filter((p) => p.workoutId === workout?.id || (p.date === date && !p.workoutId))
