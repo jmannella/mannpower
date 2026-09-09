@@ -8,7 +8,7 @@ import { Sheet } from '../components/Sheet'
 import { Chip } from '../components/Chip'
 import { PainSheet } from '../PainSheet'
 import { useDay, useDays, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
-import { getDay, getSettings, saveDay, saveSettings } from '../../data/repo'
+import { getSettings, modifyDay, saveSettings } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { addDays, formatShort, todayISO, weekEnd, weekStart } from '../../domain/dates'
 import { BUILTIN_CARDIO_TYPES } from '../../library/cardioTypes'
@@ -30,11 +30,8 @@ export default function Today() {
   const [painOpen, setPainOpen] = useState(false)
 
   const base: DayRecord = day ?? { date, cardio: [], updatedAt: '' }
-  // Re-read the stored day before each write so two quick edits never clobber each other.
-  const modify = async (fn: (cur: DayRecord) => Partial<DayRecord>) => {
-    const cur = (await getDay(date)) ?? { date, cardio: [], updatedAt: '' }
-    await saveDay({ ...cur, ...fn(cur) })
-  }
+  // Each write happens inside one transaction so two quick edits never clobber each other.
+  const modify = (fn: (cur: DayRecord) => Partial<DayRecord>) => modifyDay(date, fn)
   const patch = (p: Partial<DayRecord>) => modify(() => p)
 
   const addCardio = async (c: Omit<CardioSession, 'id'>) => {

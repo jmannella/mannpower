@@ -2,7 +2,7 @@ import { db } from './db'
 import { onDataChange } from './changes'
 import {
   deleteExercise, deleteWorkout, exerciseHasSets, getDay, getMeta, getSettings, getWorkoutByDate,
-  listExercises, listWorkouts, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listPain,
+  listExercises, listWorkouts, modifyDay, modifyWorkoutByDate, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listPain,
 } from './repo'
 import type { Workout } from '../domain/types'
 
@@ -90,5 +90,30 @@ describe('repo', () => {
   test('pain entries save and list', async () => {
     await savePain({ id: 'p1', date: '2026-09-08', area: 'lower_back', severity: 3, limited: true, createdAt: '' })
     expect((await listPain()).map((p) => p.id)).toEqual(['p1'])
+  })
+
+  test('modifyWorkoutByDate serialises concurrent edits', async () => {
+    const draft = (): Workout => ({ id: 'w-draft', date: '2026-09-08', withTrainer: true, entries: [], createdAt: '', updatedAt: '' })
+    await Promise.all([
+      modifyWorkoutByDate('2026-09-08', draft, (w) => ({ ...w, entries: [...w.entries, { id: 'a', exerciseId: 'plank', sets: [] }] })),
+      modifyWorkoutByDate('2026-09-08', draft, (w) => ({ ...w, withTrainer: false })),
+      modifyWorkoutByDate('2026-09-08', draft, (w) => ({ ...w, entries: [...w.entries, { id: 'b', exerciseId: 'push-up', sets: [] }] })),
+    ])
+    const all = await listWorkouts()
+    expect(all).toHaveLength(1)
+    expect(all[0].withTrainer).toBe(false)
+    expect(all[0].entries.map((e) => e.id).sort()).toEqual(['a', 'b'])
+  })
+
+  test('modifyDay serialises concurrent edits', async () => {
+    await Promise.all([
+      modifyDay('2026-09-08', () => ({ bodyWeight: 240 })),
+      modifyDay('2026-09-08', () => ({ steps: 9000 })),
+      modifyDay('2026-09-08', (d) => ({ cardio: [...d.cardio, { id: 'c', type: 'Walk', minutes: 10 }] })),
+    ])
+    const d = await getDay('2026-09-08')
+    expect(d?.bodyWeight).toBe(240)
+    expect(d?.steps).toBe(9000)
+    expect(d?.cardio).toHaveLength(1)
   })
 })

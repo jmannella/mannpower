@@ -65,7 +65,9 @@ describe('Workout', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Plank' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Solo' }))
     await waitFor(async () => {
-      expect((await getWorkoutByDate('2026-09-08'))?.withTrainer).toBe(false)
+      const w = await getWorkoutByDate('2026-09-08')
+      expect(w?.withTrainer).toBe(false)
+      expect(w?.entries.map((e) => e.exerciseId)).toEqual(['plank'])
     })
   })
 

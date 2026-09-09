@@ -7,7 +7,7 @@ import { Section } from '../components/Section'
 import { BigNumber } from '../components/BigNumber'
 import { PainSheet } from '../PainSheet'
 import { useExercises, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
-import { deleteWorkout, getWorkoutByDate, saveExercise, saveWorkout } from '../../data/repo'
+import { deleteWorkout, modifyWorkoutByDate, saveExercise } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { formatShort, nowISO, todayISO } from '../../domain/dates'
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type Exercise, type MuscleGroup, type SetRecord, type Workout as WorkoutRecord, type WorkoutEntry } from '../../domain/types'
@@ -39,13 +39,12 @@ export default function Workout() {
     return () => clearTimeout(t)
   }, [pulseEntry])
 
-  // Every write re-reads the stored workout first. The live query can lag a few
-  // milliseconds behind a save, and two quick taps must not create two workouts.
+  // Every write happens inside one transaction so two quick taps can never clobber
+  // each other, even when the live query lags a few milliseconds behind a save.
   const draftId = useRef(newId())
   const draft = (): WorkoutRecord =>
     ({ id: draftId.current, date, withTrainer: settings?.defaultWithTrainer ?? true, entries: [], createdAt: nowISO(), updatedAt: '' })
-  const current = async (): Promise<WorkoutRecord> => (await getWorkoutByDate(date)) ?? draft()
-  const update = async (fn: (w: WorkoutRecord) => WorkoutRecord) => saveWorkout(fn(await current()))
+  const update = (fn: (w: WorkoutRecord) => WorkoutRecord) => modifyWorkoutByDate(date, draft, fn)
 
   const addExercise = (exerciseId: string) => {
     void update((w) => ({ ...w, entries: [...w.entries, { id: newId(), exerciseId, sets: [] }] }))
@@ -62,9 +61,7 @@ export default function Workout() {
       return { ...w, entries }
     })
   const setSets = async (entryId: string, sets: SetRecord[]) => {
-    const w = await current()
-    const next = { ...w, entries: w.entries.map((e) => (e.id === entryId ? { ...e, sets } : e)) }
-    await saveWorkout(next)
+    const next = await modifyWorkoutByDate(date, draft, (w) => ({ ...w, entries: w.entries.map((e) => (e.id === entryId ? { ...e, sets } : e)) }))
     const entry = next.entries.find((e) => e.id === entryId)
     if (entry && prsForWorkout(workouts, next).some((p) => p.exerciseId === entry.exerciseId)) setPulseEntry(entryId)
   }
