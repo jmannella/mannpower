@@ -8,7 +8,7 @@ import { useDays, useExercises, usePain, useWorkouts } from '../hooks'
 import { MUSCLE_LABELS } from '../../domain/types'
 import { formatShort } from '../../domain/dates'
 import { exerciseHistory } from '../../stats/prs'
-import { bodyWeightAvg7, latestBodyWeight, relativeStrength } from '../../stats/bodyweight'
+import { latestBodyWeight, relativeStrength } from '../../stats/bodyweight'
 import { flareRate } from '../../stats/pain'
 
 export default function ExerciseHistory() {
@@ -24,7 +24,7 @@ export default function ExerciseHistory() {
   const bw = latestBodyWeight(days)
   const rel = best ? relativeStrength(best.bestE1rm, bw?.weight) : undefined
   const flare = flareRate(workouts, pain, id)
-  const chart = history.map((s) => ({ date: s.date, label: formatShort(s.date), e1rm: Math.round(s.bestE1rm), rel: relativeStrength(s.bestE1rm, bodyWeightAvg7(days, s.date)) }))
+  const chart = history.map((s) => ({ date: s.date, label: formatShort(s.date), e1rm: Math.round(s.bestE1rm) }))
 
   return (
     <div className="screen">

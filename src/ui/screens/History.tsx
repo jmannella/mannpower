@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Chip } from '../components/Chip'
@@ -18,6 +18,12 @@ export default function History() {
     .filter((w) => filter === 'all' || (filter === 'trainer' ? w.withTrainer : !w.withTrainer))
     .sort((a, b) => b.date.localeCompare(a.date))
 
+  const prCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const w of workouts) m.set(w.id, prsForWorkout(workouts, w).length)
+    return m
+  }, [workouts])
+
   return (
     <div className="screen">
       <Header title="History" />
@@ -29,7 +35,7 @@ export default function History() {
       {shown.length === 0 && <div className="muted">No workouts yet. Start one from Today.</div>}
       <div className="list">
         {shown.map((w) => {
-          const prCount = prsForWorkout(workouts, w).length
+          const prCount = prCounts.get(w.id) ?? 0
           const hasPain = pain.some((p) => p.workoutId === w.id || p.date === w.date)
           return (
             <button key={w.id} type="button" className="list-item" style={{ width: '100%', textAlign: 'left' }} onClick={() => navigate(`/workout/${w.date}`)}>
