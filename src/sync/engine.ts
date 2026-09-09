@@ -48,7 +48,13 @@ export async function syncOnce(deps: SyncDeps): Promise<SyncDecision> {
       if (!v.ok) throw new SyncError(`Remote data.json failed validation: ${v.errors[0]}`)
       remoteDs = v.dataset
     }
-    const decision = decide(local.meta.updatedAt, remoteDs?.meta.updatedAt ?? null)
+    let decision = decide(local.meta.updatedAt, remoteDs?.meta.updatedAt ?? null)
+    // A device that has never synced (no stored sha) must not push and overwrite an existing
+    // remote backup just because its clock-stamped meta.updatedAt happens to look newer.
+    if (decision === 'push' && remoteDs && (await deps.getSha()) === undefined
+      && remoteDs.workouts.length + remoteDs.days.length + remoteDs.pain.length > 0) {
+      decision = 'pull'
+    }
     if (decision === 'pull' && remoteDs && remote) {
       await deps.replaceLocal(remoteDs)
       await deps.setSha(remote.sha)

@@ -60,8 +60,11 @@ export default function Workout() {
       ;[entries[i], entries[j]] = [entries[j], entries[i]]
       return { ...w, entries }
     })
-  const setSets = async (entryId: string, sets: SetRecord[]) => {
-    const next = await modifyWorkoutByDate(date, draft, (w) => ({ ...w, entries: w.entries.map((e) => (e.id === entryId ? { ...e, sets } : e)) }))
+  const updateSets = async (entryId: string, fn: (sets: SetRecord[]) => SetRecord[]) => {
+    const next = await modifyWorkoutByDate(date, draft, (w) => ({
+      ...w,
+      entries: w.entries.map((e) => (e.id === entryId ? { ...e, sets: fn(e.sets) } : e)),
+    }))
     const entry = next.entries.find((e) => e.id === entryId)
     if (entry && prsForWorkout(workouts, next).some((p) => p.exerciseId === entry.exerciseId)) setPulseEntry(entryId)
   }
@@ -76,7 +79,7 @@ export default function Workout() {
   const entries = workout?.entries ?? []
   const prs = workout ? prsForWorkout(workouts, workout) : []
   const load = workout ? workoutMuscleLoad(workout, exMap) : null
-  const workoutPain = pain.filter((p) => p.workoutId === workout?.id || (p.date === date && !p.workoutId))
+  const workoutPain = workout ? pain.filter((p) => p.workoutId === workout.id || (p.date === date && !p.workoutId)) : []
 
   return (
     <div className="screen">
@@ -135,11 +138,11 @@ export default function Workout() {
             )}
             {entry.sets.map((s, i) => (
               <SetRow key={i} index={i} set={s}
-                onChange={(next) => setSets(entry.id, entry.sets.map((x, k) => (k === i ? next : x)))}
-                onDelete={() => setSets(entry.id, entry.sets.filter((_, k) => k !== i))} />
+                onChange={(nextSetValue) => updateSets(entry.id, (sets) => sets.map((x, k) => (k === i ? nextSetValue : x)))}
+                onDelete={() => updateSets(entry.id, (sets) => sets.filter((_, k) => k !== i))} />
             ))}
             <div className="row">
-              <button type="button" className="btn" onClick={() => setSets(entry.id, [...entry.sets, nextSet(entry, last?.sets)])}>Add set</button>
+              <button type="button" className="btn" onClick={() => updateSets(entry.id, (sets) => [...sets, nextSet({ ...entry, sets }, last?.sets)])}>Add set</button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPainFor({ exerciseId: entry.exerciseId, name: ex?.name ?? '' })}>Log pain</button>
             </div>
           </div>

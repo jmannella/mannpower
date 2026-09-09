@@ -22,6 +22,6 @@ describe('Trends', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
     expect(await screen.findByRole('combobox', { name: 'Exercise' })).toHaveDisplayValue('Back Squat')
-    expect(screen.getByText('Lower back')).toBeInTheDocument()
+    expect(await screen.findByText('Lower back')).toBeInTheDocument()
   })
 })

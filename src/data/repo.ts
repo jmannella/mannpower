@@ -124,10 +124,14 @@ export async function getSettings(): Promise<Settings> {
 const SYNC_ONLY_KEYS: (keyof Settings)[] = ['lastSyncedAt', 'lastSyncSha', 'syncStatus', 'lastSyncError', 'githubToken', 'dataRepo']
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
-  const current = await getSettings()
-  await db.settings.put({ ...current, ...patch, id: 'settings' })
   const touchesData = Object.keys(patch).some((k) => !SYNC_ONLY_KEYS.includes(k as keyof Settings))
-  if (touchesData) await afterWrite()
+  await db.transaction('rw', [db.settings, db.meta], async () => {
+    const s = await db.settings.get('settings')
+    const current = { ...DEFAULT_SETTINGS, ...(s ?? {}) }
+    await db.settings.put({ ...current, ...patch, id: 'settings' })
+    if (touchesData) await touchMeta()
+  })
+  if (touchesData) emitDataChange()
 }
 
 export async function getMeta(): Promise<Meta> {

@@ -105,6 +105,18 @@ describe('repo', () => {
     expect(all[0].entries.map((e) => e.id).sort()).toEqual(['a', 'b'])
   })
 
+  test('saveSettings serialises concurrent edits atomically', async () => {
+    await Promise.all([
+      saveSettings({ dailyStepGoal: 1 }),
+      saveSettings({ syncStatus: 'synced' }),
+      saveSettings({ customCardioTypes: ['Hike'] }),
+    ])
+    const s = await getSettings()
+    expect(s.dailyStepGoal).toBe(1)
+    expect(s.syncStatus).toBe('synced')
+    expect(s.customCardioTypes).toEqual(['Hike'])
+  })
+
   test('modifyDay serialises concurrent edits', async () => {
     await Promise.all([
       modifyDay('2026-09-08', () => ({ bodyWeight: 240 })),

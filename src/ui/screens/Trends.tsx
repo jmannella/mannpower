@@ -86,7 +86,7 @@ export default function Trends() {
               <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={24} />
               <YAxis domain={['auto', 'auto']} />
               <Tooltip contentStyle={tooltipStyle} />
-              {settings?.targetBodyWeight && <ReferenceLine y={settings.targetBodyWeight} stroke="#4ade80" strokeDasharray="4 4" label={{ value: 'target', fill: '#4ade80', fontSize: 11 }} />}
+              {settings?.targetBodyWeight ? <ReferenceLine y={settings.targetBodyWeight} stroke="#4ade80" strokeDasharray="4 4" label={{ value: 'target', fill: '#4ade80', fontSize: 11 }} /> : null}
               <Line dataKey="weight" stroke="#22d3ee" strokeWidth={0} dot={{ r: 3, fill: '#22d3ee' }} connectNulls={false} isAnimationActive={false} />
               <Line dataKey="avg7" stroke="#ff5a1f" strokeWidth={3} dot={false} connectNulls isAnimationActive={false} />
             </LineChart>
@@ -150,7 +150,7 @@ export default function Trends() {
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis />
               <Tooltip contentStyle={tooltipStyle} />
-              {settings?.dailyStepGoal && <ReferenceLine y={settings.dailyStepGoal * 7} stroke="#4ade80" strokeDasharray="4 4" />}
+              {settings?.dailyStepGoal ? <ReferenceLine y={settings.dailyStepGoal * 7} stroke="#4ade80" strokeDasharray="4 4" /> : null}
               <Bar dataKey="steps" name="Steps" fill="#22d3ee" isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>

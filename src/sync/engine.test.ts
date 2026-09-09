@@ -83,6 +83,29 @@ describe('syncOnce', () => {
     expect(state.sha).toBe('sha-after-retry')
   })
 
+  test('never-synced device pulls instead of overwriting an existing remote backup', async () => {
+    const remote = ds('2026-09-08T09:00:00.000Z', 'remote')
+    remote.workouts = [{ id: 'w1', date: '2026-09-01', withTrainer: true, entries: [], createdAt: '', updatedAt: '' }]
+    const { client, puts } = fakeClient({ content: JSON.stringify(remote), sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)
+    // getSha defaults to undefined in `deps`, simulating an install that has never synced.
+    expect(await syncOnce(d)).toBe('pull')
+    expect(puts).toHaveLength(0)
+    expect(state.replaced?.workouts).toHaveLength(1)
+    expect(state.sha).toBe('r1')
+  })
+
+  test('a device with a known sha still pushes newer local data over an older remote', async () => {
+    const remote = ds('2026-09-08T09:00:00.000Z', 'remote')
+    remote.workouts = [{ id: 'w1', date: '2026-09-01', withTrainer: true, entries: [], createdAt: '', updatedAt: '' }]
+    const { client, puts } = fakeClient({ content: JSON.stringify(remote), sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)
+    state.sha = 'known-sha'
+    expect(await syncOnce(d)).toBe('push')
+    expect(puts).toHaveLength(1)
+    expect(state.sha).toBe('sha-new')
+  })
+
   test('records an error status and rethrows on failure', async () => {
     const { client } = fakeClient({ content: 'not json', sha: 'r1' })
     const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)

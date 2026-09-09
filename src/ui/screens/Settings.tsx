@@ -31,9 +31,13 @@ export default function Settings() {
   const repoValue = repo ?? settings.dataRepo
 
   const saveSync = async () => {
-    await saveSettings({ githubToken: tokenValue.trim() || undefined, dataRepo: repoValue.trim() || 'jmannella/mannpower-data', syncStatus: tokenValue.trim() ? 'pending' : 'not_set_up', lastSyncError: undefined })
+    const trimmedToken = tokenValue.trim()
+    await saveSettings({ githubToken: trimmedToken || undefined, dataRepo: repoValue.trim() || 'jmannella/mannpower-data', syncStatus: trimmedToken ? 'pending' : 'not_set_up', lastSyncError: undefined })
     setToken(null); setRepo(null)
     setMessage('Saved.')
+    // A freshly-entered token must sync immediately: a fresh install must not sit on a
+    // near-empty local dataset that could otherwise overwrite an existing remote backup later.
+    if (trimmedToken) await syncNow()
   }
   const syncNow = async () => {
     setBusy(true); setMessage(null)
@@ -123,7 +127,7 @@ export default function Settings() {
           <button type="button" className="btn" onClick={exportBackup}>Export backup</button>
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>Import backup</button>
         </div>
-        <input ref={fileRef} type="file" accept="application/json" hidden aria-label="Backup file" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importBackup(f); e.target.value = '' }} />
+        <input ref={fileRef} type="file" accept=".json,application/json" hidden aria-label="Backup file" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importBackup(f); e.target.value = '' }} />
       </Section>
 
       <Section title="Custom exercises">

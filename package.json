@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "report": "node --env-file=.env --import tsx scripts/report.ts",
+    "report": "node --env-file-if-exists=.env --import tsx scripts/report.ts",
     "icons": "node scripts/icons.mjs"
   },
   "dependencies": {

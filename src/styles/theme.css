@@ -103,7 +103,7 @@ textarea.input { padding: 12px 14px; min-height: 80px; resize: vertical; }
 .tab svg { width: 24px; height: 24px; }
 .tab-on { color: var(--accent); }
 
-.set-row { display: grid; grid-template-columns: 32px 1fr 1fr 56px 44px; gap: 8px; align-items: center; }
+.set-row { display: grid; grid-template-columns: 32px 1fr 1fr 56px var(--tap); gap: 8px; align-items: center; }
 .set-row .set-index { color: var(--muted); font-family: var(--font-display); font-size: 20px; text-align: center; }
 .set-input { min-height: var(--tap); text-align: center; font-family: var(--font-display); font-size: 26px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); width: 100%; }
 .set-input:focus { outline: 2px solid var(--accent); }

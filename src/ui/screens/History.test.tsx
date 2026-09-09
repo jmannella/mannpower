@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { db } from '../../data/db'
@@ -31,7 +31,7 @@ describe('History', () => {
     expect(items[0]).toHaveTextContent('Thu Sep 3')
     expect(items[0]).toHaveTextContent('Solo')
     expect(items[0]).toHaveTextContent('PR')
-    expect(items[0]).toHaveTextContent('Pain')
+    await waitFor(() => expect(items[0]).toHaveTextContent('Pain'))
     expect(items[1]).toHaveTextContent('Trainer')
     await userEvent.click(screen.getByRole('button', { name: 'Trainer only' }))
     expect(screen.getAllByRole('button', { name: /Sep/ })).toHaveLength(1)

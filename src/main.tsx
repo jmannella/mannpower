@@ -7,6 +7,10 @@ import { runSync } from './sync/runSync'
 
 registerSW({ immediate: true })
 
+// Ask the browser not to evict the database under storage pressure (Chrome in particular
+// will otherwise clear "best-effort" storage, including IndexedDB, without warning).
+if (navigator.storage?.persist) void navigator.storage.persist()
+
 const auto = createAutoSync({ run: runSync })
 void auto.kick()
 

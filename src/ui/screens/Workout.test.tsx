@@ -41,6 +41,28 @@ describe('Workout', () => {
     })
   })
 
+  test('add set click after a reps blur does not clobber the just-committed reps', async () => {
+    renderWorkout()
+    await userEvent.type(await screen.findByLabelText('Search exercises'), 'back squ')
+    await userEvent.click(await screen.findByRole('button', { name: 'Back Squat' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add set' }))
+    const weightInput = await screen.findByLabelText('Set 1 weight')
+    await userEvent.clear(weightInput)
+    await userEvent.type(weightInput, '185')
+    const repsInput = await screen.findByLabelText('Set 1 reps')
+    await userEvent.clear(repsInput)
+    await userEvent.type(repsInput, '5')
+    // No userEvent.tab() here: the "Add set" click below is what blurs the reps input.
+    await userEvent.click(screen.getByRole('button', { name: 'Add set' }))
+    await waitFor(async () => {
+      const w = await getWorkoutByDate('2026-09-08')
+      expect(w?.entries[0].sets).toEqual([
+        { weight: 185, reps: 5, warmup: false },
+        { weight: 185, reps: 5, warmup: false },
+      ])
+    })
+  })
+
   test('shows last time and flags a PR, then finish shows the summary', async () => {
     await saveWorkout({
       id: 'prev', date: '2026-09-01', withTrainer: true, createdAt: '', updatedAt: '',
@@ -54,7 +76,7 @@ describe('Workout', () => {
     expect(await screen.findByText(/Last time: 175 x 5/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }))
     expect(await screen.findByText('925')).toBeInTheDocument() // total volume
-    expect(screen.getByText(/Back Squat.*e1RM/)).toBeInTheDocument()
+    expect(await screen.findByText(/Back Squat.*e1RM/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(await screen.findByText('History page')).toBeInTheDocument()
   })
