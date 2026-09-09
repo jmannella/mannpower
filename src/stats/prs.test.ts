@@ -18,8 +18,8 @@ describe('prs', () => {
   })
 
   test('bestBefore looks strictly before the date', () => {
-    expect(bestBefore(all, 'back-squat', '2026-09-04')).toEqual({ e1rm: epley(135, 10), weight: 135 })
-    expect(bestBefore(all, 'back-squat', '2026-09-01')).toEqual({ e1rm: 0, weight: 0 })
+    expect(bestBefore(all, 'back-squat', '2026-09-04')).toEqual({ e1rm: epley(135, 10), weight: 135, sessions: 1 })
+    expect(bestBefore(all, 'back-squat', '2026-09-01')).toEqual({ e1rm: 0, weight: 0, sessions: 0 })
   })
 
   test('prsForWorkout reports e1rm and weight PRs against prior history only', () => {
@@ -31,5 +31,15 @@ describe('prs', () => {
     ])
     const p3 = prsForWorkout(all, w3)
     expect(p3).toEqual([{ exerciseId: 'back-squat', kind: 'e1rm', previous: epley(145, 8), current: epley(145, 10) }])
+  })
+
+  test('adding weight to a bodyweight exercise counts as a PR', () => {
+    const bw1 = mkWorkout('2026-09-01', [mkEntry('push-up', [[0, 12]])])
+    const bw2 = mkWorkout('2026-09-05', [mkEntry('push-up', [[25, 10]])])
+    expect(prsForWorkout([bw1, bw2], bw1)).toEqual([])
+    expect(prsForWorkout([bw1, bw2], bw2)).toEqual([
+      { exerciseId: 'push-up', kind: 'e1rm', previous: 0, current: epley(25, 10) },
+      { exerciseId: 'push-up', kind: 'weight', previous: 0, current: 25 },
+    ])
   })
 })
