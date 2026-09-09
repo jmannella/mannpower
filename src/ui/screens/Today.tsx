@@ -8,7 +8,7 @@ import { Sheet } from '../components/Sheet'
 import { Chip } from '../components/Chip'
 import { PainSheet } from '../PainSheet'
 import { useDay, useDays, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
-import { getDay, saveDay, saveSettings } from '../../data/repo'
+import { getDay, getSettings, saveDay, saveSettings } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { addDays, formatShort, todayISO, weekEnd, weekStart } from '../../domain/dates'
 import { BUILTIN_CARDIO_TYPES } from '../../library/cardioTypes'
@@ -39,8 +39,9 @@ export default function Today() {
 
   const addCardio = async (c: Omit<CardioSession, 'id'>) => {
     await modify((cur) => ({ cardio: [...cur.cardio, { id: newId(), ...c }] }))
-    const known = [...BUILTIN_CARDIO_TYPES, ...(settings?.customCardioTypes ?? [])]
-    if (!known.includes(c.type)) await saveSettings({ customCardioTypes: [...(settings?.customCardioTypes ?? []), c.type] })
+    const current = await getSettings()
+    const known = [...BUILTIN_CARDIO_TYPES, ...current.customCardioTypes]
+    if (!known.includes(c.type)) await saveSettings({ customCardioTypes: [...current.customCardioTypes, c.type] })
   }
   const removeCardio = (id: string) => modify((cur) => ({ cardio: cur.cardio.filter((c) => c.id !== id) }))
 
@@ -58,7 +59,7 @@ export default function Today() {
       <Header />
       <div className="row-between">
         <h2>{date === todayISO() ? 'Today' : formatShort(date)}</h2>
-        <input className="input" style={{ width: 'auto', minHeight: 40 }} type="date" value={date} aria-label="Date" onChange={(e) => e.target.value && setDate(e.target.value)} />
+        <input className="input" style={{ width: 'auto' }} type="date" value={date} aria-label="Date" onChange={(e) => e.target.value && setDate(e.target.value)} />
       </div>
 
       <div className="card">
@@ -108,21 +109,21 @@ export default function Today() {
         </div>
       </Section>
 
-      <CardioSheet open={cardioOpen !== null} initialType={cardioOpen?.type ?? 'Treadmill'} types={cardioTypes} onClose={() => setCardioOpen(null)} onAdd={addCardio} />
+      {cardioOpen && (
+        <CardioSheet initialType={cardioOpen.type} types={cardioTypes} onClose={() => setCardioOpen(null)} onAdd={addCardio} />
+      )}
       <PainSheet open={painOpen} onClose={() => setPainOpen(false)} date={date} />
     </div>
   )
 }
 
-function CardioSheet({ open, initialType, types, onClose, onAdd }: {
-  open: boolean; initialType: string; types: string[]; onClose: () => void; onAdd: (c: Omit<CardioSession, 'id'>) => void
+function CardioSheet({ initialType, types, onClose, onAdd }: {
+  initialType: string; types: string[]; onClose: () => void; onAdd: (c: Omit<CardioSession, 'id'>) => void
 }) {
   const [type, setType] = useState(initialType)
   const [custom, setCustom] = useState('')
   const [minutes, setMinutes] = useState<number | undefined>()
   const [distance, setDistance] = useState<number | undefined>()
-  const [lastInitial, setLastInitial] = useState(initialType)
-  if (initialType !== lastInitial) { setLastInitial(initialType); setType(initialType) }
 
   const finalType = type === 'Other' ? custom.trim() || 'Other' : type
   const reset = () => { setMinutes(undefined); setDistance(undefined); setCustom('') }
@@ -133,7 +134,7 @@ function CardioSheet({ open, initialType, types, onClose, onAdd }: {
     onClose()
   }
   return (
-    <Sheet open={open} onClose={() => { reset(); onClose() }} title="Add cardio">
+    <Sheet open onClose={() => { reset(); onClose() }} title="Add cardio">
       <div className="chips">
         {types.map((t) => <Chip key={t} on={type === t} onClick={() => setType(t)}>{t}</Chip>)}
       </div>

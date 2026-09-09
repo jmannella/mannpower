@@ -61,4 +61,16 @@ describe('Today', () => {
       expect(pain[0].date).toBe(todayISO())
     })
   })
+
+  test('desk treadmill chip always reopens with Desk treadmill selected', async () => {
+    renderToday()
+    await userEvent.click(await screen.findByRole('button', { name: '+ Desk treadmill' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Bike' }))
+    await userEvent.type(screen.getByLabelText('Minutes'), '10')
+    await userEvent.tab()
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await userEvent.click(await screen.findByRole('button', { name: '+ Desk treadmill' }))
+    expect(screen.getByRole('button', { name: 'Desk treadmill' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Bike' })).toHaveAttribute('aria-pressed', 'false')
+  })
 })
