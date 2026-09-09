@@ -72,6 +72,21 @@ describe('repo', () => {
     expect((await getSettings()).dataRepo).toBe('jmannella/mannpower-data')
   })
 
+  test('sync-only settings keys do not touch meta or emit a change', async () => {
+    await saveSettings({ dailyStepGoal: 8000 }) // establishes a real meta timestamp
+    const before = (await getMeta()).updatedAt
+    const seen: number[] = []
+    const off = onDataChange(() => seen.push(1))
+    await saveSettings({ syncStatus: 'synced', lastSyncedAt: '2026-09-08T12:00:00.000Z', lastSyncSha: 'abc', lastSyncError: undefined, githubToken: 'tok', dataRepo: 'x/y' })
+    off()
+    expect((await getMeta()).updatedAt).toBe(before)
+    expect(seen).toHaveLength(0)
+    const s = await getSettings()
+    expect(s.syncStatus).toBe('synced')
+    expect(s.githubToken).toBe('tok')
+    expect(s.dailyStepGoal).toBe(8000)
+  })
+
   test('pain entries save and list', async () => {
     await savePain({ id: 'p1', date: '2026-09-08', area: 'lower_back', severity: 3, limited: true, createdAt: '' })
     expect((await listPain()).map((p) => p.id)).toEqual(['p1'])
