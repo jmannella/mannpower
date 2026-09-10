@@ -18,6 +18,8 @@ export interface Exercise {
   primary: MuscleGroup
   secondary: MuscleGroup[]
   custom: boolean
+  /** Other names people use for it, matched by search. */
+  aliases?: string[]
 }
 
 export interface SetRecord {
@@ -30,6 +32,8 @@ export interface WorkoutEntry {
   id: string
   exerciseId: string
   sets: SetRecord[]
+  /** Linked to the entry that follows it as a superset pair. */
+  supersetWithNext?: boolean
 }
 
 export interface Workout {

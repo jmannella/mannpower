@@ -16,6 +16,7 @@ import { exerciseHistory, prsForWorkout } from '../../stats/prs'
 import { workoutMuscleLoad } from '../../stats/muscle'
 import { flareRate } from '../../stats/pain'
 import { bodyAreaLabel } from '../../library/bodyAreas'
+import { searchExercises } from '../../library/exercises'
 
 export default function Workout() {
   const { date = todayISO() } = useParams()
@@ -32,6 +33,7 @@ export default function Workout() {
   const [painFor, setPainFor] = useState<{ exerciseId: string; name: string } | null>(null)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [pulseEntry, setPulseEntry] = useState<string | null>(null)
+  const [swapFor, setSwapFor] = useState<string | null>(null)
 
   useEffect(() => {
     if (!pulseEntry) return
@@ -50,7 +52,14 @@ export default function Workout() {
     void update((w) => ({ ...w, entries: [...w.entries, { id: newId(), exerciseId, sets: [] }] }))
     setQuery('')
   }
-  const removeEntry = (id: string) => update((w) => ({ ...w, entries: w.entries.filter((e) => e.id !== id) }))
+  const removeEntry = (id: string) =>
+    update((w) => {
+      const i = w.entries.findIndex((e) => e.id === id)
+      const entries = w.entries.filter((e) => e.id !== id)
+      // The card above the removed one can no longer be linked to it.
+      if (i > 0 && entries[i - 1]) entries[i - 1] = { ...entries[i - 1], supersetWithNext: false }
+      return { ...w, entries }
+    })
   const moveEntry = (id: string, dir: -1 | 1) =>
     update((w) => {
       const i = w.entries.findIndex((e) => e.id === id)
@@ -58,6 +67,20 @@ export default function Workout() {
       if (i < 0 || j < 0 || j >= w.entries.length) return w
       const entries = [...w.entries]
       ;[entries[i], entries[j]] = [entries[j], entries[i]]
+      // Moving a card breaks any superset link touching the cards involved.
+      for (const k of [Math.min(i, j) - 1, i, j]) if (entries[k]) entries[k] = { ...entries[k], supersetWithNext: false }
+      return { ...w, entries }
+    })
+  const swapExercise = (id: string, exerciseId: string) => {
+    void update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, exerciseId } : e)) }))
+    setSwapFor(null)
+  }
+  const setSuperset = (id: string, on: boolean) =>
+    update((w) => {
+      const i = w.entries.findIndex((e) => e.id === id)
+      const entries = w.entries.map((e) => (e.id === id ? { ...e, supersetWithNext: on } : e))
+      // A card can only be in one pair: linking A to B drops any link B had to C.
+      if (on && entries[i + 1]) entries[i + 1] = { ...entries[i + 1], supersetWithNext: false }
       return { ...w, entries }
     })
   const updateSets = async (entryId: string, fn: (sets: SetRecord[]) => SetRecord[]) => {
@@ -71,13 +94,22 @@ export default function Workout() {
 
   const lastTime = (exerciseId: string) => exerciseHistory(workouts, exerciseId).filter((s) => s.date < date).at(-1)
   const q = query.trim().toLowerCase()
-  const results = q ? exercises.filter((e) => e.name.toLowerCase().includes(q)).slice(0, 30) : []
-  const exact = results.some((e) => e.name.toLowerCase() === q)
-  const grouped = MUSCLE_GROUPS.map((g) => ({ g, items: results.filter((e) => e.primary === g) })).filter((x) => x.items.length)
+  const results = searchExercises(exercises, query).slice(0, 30)
+  const exact = results.some((e) => e.name.toLowerCase() === q || (e.aliases ?? []).some((a) => a.toLowerCase() === q))
 
   const w = workout ?? draft()
   const entries = workout?.entries ?? []
   const prs = workout ? prsForWorkout(workouts, workout) : []
+  const starred = new Set(prs.map((p) => p.exerciseId))
+  const swapEntry = entries.find((e) => e.id === swapFor)
+  // Cards linked by "superset with next" render inside one dashed group.
+  const groups: WorkoutEntry[][] = []
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].supersetWithNext && entries[i + 1]) {
+      groups.push([entries[i], entries[i + 1]])
+      i += 1
+    } else groups.push([entries[i]])
+  }
   const load = workout ? workoutMuscleLoad(workout, exMap) : null
   const workoutPain = workout ? pain.filter((p) => p.workoutId === workout.id || (p.date === date && !p.workoutId)) : []
 
@@ -96,16 +128,7 @@ export default function Workout() {
         <input className="input" aria-label="Search exercises" placeholder="Add an exercise" value={query} onChange={(e) => setQuery(e.target.value)} />
         {q && (
           <div className="list">
-            {grouped.map(({ g, items }) => (
-              <div key={g} className="stack">
-                <div className="field-label">{MUSCLE_LABELS[g]}</div>
-                {items.map((e) => (
-                  <button key={e.id} type="button" className="list-item" style={{ width: '100%', textAlign: 'left' }} onClick={() => addExercise(e.id)}>
-                    <span>{e.name}</span><span className="muted" aria-hidden="true">+</span>
-                  </button>
-                ))}
-              </div>
-            ))}
+            <ExerciseResults results={results} onPick={addExercise} />
             {!exact && (
               <button type="button" className="btn btn-ghost" onClick={() => setCustomOpen(true)}>Add "{query.trim()}" as a custom exercise</button>
             )}
@@ -113,40 +136,14 @@ export default function Workout() {
         )}
       </div>
 
-      {entries.map((entry, idx) => {
-        const ex = exMap.get(entry.exerciseId)
-        const last = lastTime(entry.exerciseId)
-        const flare = flareRate(workouts, pain, entry.exerciseId)
-        return (
-          <div key={entry.id} className={`card ${pulseEntry === entry.id ? 'pr-pulse' : ''}`}>
-            <div className="row-between">
-              <Link to={`/exercise/${entry.exerciseId}`}><h2>{ex?.name ?? entry.exerciseId}</h2></Link>
-              <div className="row">
-                <button type="button" className="icon-btn" aria-label="Move up" disabled={idx === 0} onClick={() => moveEntry(entry.id, -1)}>▲</button>
-                <button type="button" className="icon-btn" aria-label="Move down" disabled={idx === entries.length - 1} onClick={() => moveEntry(entry.id, 1)}>▼</button>
-                <button type="button" className="icon-btn" aria-label={`Remove ${ex?.name ?? 'exercise'}`} onClick={() => removeEntry(entry.id)}>×</button>
-              </div>
-            </div>
-            <div className="muted">
-              {last ? `Last time: ${last.sets.map((s) => `${s.weight} x ${s.reps}`).join(', ')}` : 'First time logging this'}
-              {flare.flares > 0 && <span style={{ color: 'var(--red)' }}> · pain on {flare.flares} of {flare.sessions}</span>}
-            </div>
-            {entry.sets.length > 0 && (
-              <div className="set-row muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                <span>Set</span><span style={{ textAlign: 'center' }}>lb</span><span style={{ textAlign: 'center' }}>reps</span><span style={{ textAlign: 'center' }}>warm</span><span />
-              </div>
-            )}
-            {entry.sets.map((s, i) => (
-              <SetRow key={i} index={i} set={s}
-                onChange={(nextSetValue) => updateSets(entry.id, (sets) => sets.map((x, k) => (k === i ? nextSetValue : x)))}
-                onDelete={() => updateSets(entry.id, (sets) => sets.filter((_, k) => k !== i))} />
-            ))}
-            <div className="row">
-              <button type="button" className="btn" onClick={() => updateSets(entry.id, (sets) => [...sets, nextSet({ ...entry, sets }, last?.sets)])}>Add set</button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPainFor({ exerciseId: entry.exerciseId, name: ex?.name ?? '' })}>Log pain</button>
-            </div>
+      {groups.map((group) => {
+        const cards = group.map((entry, k) => renderCard(entry, group.length === 2 ? (k === 0 ? 'A' : 'B') : undefined))
+        return group.length === 2 ? (
+          <div key={group[0].id} className="superset">
+            <div className="superset-label">Superset</div>
+            {cards}
           </div>
-        )
+        ) : cards[0]
       })}
 
       {workout && (
@@ -157,6 +154,10 @@ export default function Workout() {
 
       {customOpen && (
         <CustomExerciseSheet name={query.trim()} onClose={() => setCustomOpen(false)} onCreate={async (ex) => { await saveExercise(ex); setCustomOpen(false); addExercise(ex.id) }} />
+      )}
+
+      {swapEntry && (
+        <SwapSheet current={exMap.get(swapEntry.exerciseId)?.name ?? ''} exercises={exercises} onClose={() => setSwapFor(null)} onPick={(exerciseId) => swapExercise(swapEntry.id, exerciseId)} />
       )}
 
       <PainSheet open={painFor !== null} onClose={() => setPainFor(null)} date={date} workoutId={workout?.id} exerciseId={painFor?.exerciseId} exerciseName={painFor?.name} />
@@ -180,7 +181,7 @@ export default function Workout() {
           <div className="list">
             {prs.map((p, i) => (
               <div key={i} className="list-item">
-                <span><span className="pill pill-pr">PR</span> {exMap.get(p.exerciseId)?.name} {p.kind === 'e1rm' ? 'e1RM' : 'top weight'}</span>
+                <span><span className="pill pill-pr">★ PR</span> {exMap.get(p.exerciseId)?.name} {p.kind === 'e1rm' ? 'e1RM' : 'top weight'}</span>
                 <span className="muted">{Math.round(p.previous)} to {Math.round(p.current)}</span>
               </div>
             ))}
@@ -198,6 +199,88 @@ export default function Workout() {
         <button type="button" className="btn btn-primary btn-block" onClick={() => { setSummaryOpen(false); navigate('/history') }}>Done</button>
       </Sheet>
     </div>
+  )
+
+  function renderCard(entry: WorkoutEntry, marker?: 'A' | 'B') {
+    const idx = entries.findIndex((e) => e.id === entry.id)
+        const ex = exMap.get(entry.exerciseId)
+        const name = ex?.name ?? entry.exerciseId
+        const last = lastTime(entry.exerciseId)
+        const flare = flareRate(workouts, pain, entry.exerciseId)
+        const isPairSecond = idx > 0 && entries[idx - 1].supersetWithNext === true
+    const nextLinked = entries[idx + 1]?.supersetWithNext === true
+    const canLink = idx < entries.length - 1 && !isPairSecond && !nextLinked
+        return (
+          <div key={entry.id} className={`card ${pulseEntry === entry.id ? 'pr-pulse' : ''}`}>
+            <div className="row-between">
+              <div className="row">
+                {marker && <span className="superset-marker" aria-hidden="true">{marker}</span>}
+                <Link to={`/exercise/${entry.exerciseId}`}><h2>{name}</h2></Link>
+                {starred.has(entry.exerciseId) && <span className="star" role="img" aria-label="Personal record">★</span>}
+              </div>
+              <div className="row">
+                <button type="button" className="icon-btn" aria-label={`Change ${name}`} onClick={() => setSwapFor(entry.id)}>⇄</button>
+                <button type="button" className="icon-btn" aria-label="Move up" disabled={idx === 0} onClick={() => moveEntry(entry.id, -1)}>▲</button>
+                <button type="button" className="icon-btn" aria-label="Move down" disabled={idx === entries.length - 1} onClick={() => moveEntry(entry.id, 1)}>▼</button>
+                <button type="button" className="icon-btn" aria-label={`Remove ${name}`} onClick={() => removeEntry(entry.id)}>×</button>
+              </div>
+            </div>
+            <div className="muted">
+              {last ? `Last time: ${last.sets.map((s) => `${s.weight} x ${s.reps}`).join(', ')}` : 'First time logging this'}
+              {flare.flares > 0 && <span style={{ color: 'var(--red)' }}> · pain on {flare.flares} of {flare.sessions}</span>}
+            </div>
+            {entry.sets.length > 0 && (
+              <div className="set-row muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <span>Set</span><span style={{ textAlign: 'center' }}>lb</span><span style={{ textAlign: 'center' }}>reps</span><span style={{ textAlign: 'center' }}>warm</span><span />
+              </div>
+            )}
+            {entry.sets.map((s, i) => (
+              <SetRow key={i} index={i} set={s}
+                onChange={(nextSetValue) => updateSets(entry.id, (sets) => sets.map((x, k) => (k === i ? nextSetValue : x)))}
+                onDelete={() => updateSets(entry.id, (sets) => sets.filter((_, k) => k !== i))} />
+            ))}
+            <div className="row">
+              <button type="button" className="btn" onClick={() => updateSets(entry.id, (sets) => [...sets, nextSet({ ...entry, sets }, last?.sets)])}>Add set</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPainFor({ exerciseId: entry.exerciseId, name })}>Log pain</button>
+              {entry.supersetWithNext ? (
+                <button type="button" className="btn btn-ghost btn-sm" aria-label={`Unlink ${name} superset`} onClick={() => setSuperset(entry.id, false)}>Unlink</button>
+              ) : canLink ? (
+                <button type="button" className="btn btn-ghost btn-sm" aria-label={`Superset ${name} with next`} onClick={() => setSuperset(entry.id, true)}>Superset ↓</button>
+              ) : null}
+            </div>
+          </div>
+        )
+  }
+}
+
+function ExerciseResults({ results, onPick }: { results: Exercise[]; onPick: (exerciseId: string) => void }) {
+  const grouped = MUSCLE_GROUPS.map((g) => ({ g, items: results.filter((e) => e.primary === g) })).filter((x) => x.items.length)
+  return (
+    <>
+      {grouped.map(({ g, items }) => (
+        <div key={g} className="stack">
+          <div className="field-label">{MUSCLE_LABELS[g]}</div>
+          {items.map((e) => (
+            <button key={e.id} type="button" className="list-item" style={{ width: '100%', textAlign: 'left' }} onClick={() => onPick(e.id)}>
+              <span>{e.name}</span><span className="muted" aria-hidden="true">+</span>
+            </button>
+          ))}
+        </div>
+      ))}
+    </>
+  )
+}
+
+/** Re-point a logged card at a different exercise, keeping its sets. */
+function SwapSheet({ current, exercises, onClose, onPick }: { current: string; exercises: Exercise[]; onClose: () => void; onPick: (exerciseId: string) => void }) {
+  const [query, setQuery] = useState('')
+  const results = searchExercises(exercises, query).slice(0, 30)
+  return (
+    <Sheet open onClose={onClose} title="Change exercise">
+      <div className="muted">Replacing {current}. Sets stay as they are.</div>
+      <input className="input" aria-label="Search replacement" placeholder="Search exercises" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
+      <div className="list"><ExerciseResults results={results} onPick={onPick} /></div>
+    </Sheet>
   )
 }
 

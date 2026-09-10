@@ -1,7 +1,7 @@
 import type { Exercise, MuscleGroup } from '../domain/types'
 
-function ex(id: string, name: string, primary: MuscleGroup, secondary: MuscleGroup[] = []): Exercise {
-  return { id, name, primary, secondary, custom: false }
+function ex(id: string, name: string, primary: MuscleGroup, secondary: MuscleGroup[] = [], aliases?: string[]): Exercise {
+  return aliases ? { id, name, primary, secondary, custom: false, aliases } : { id, name, primary, secondary, custom: false }
 }
 
 export const BUILTIN_EXERCISES: Exercise[] = [
@@ -118,15 +118,53 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('pallof-press', 'Pallof Press', 'core'),
   ex('decline-sit-up', 'Decline Sit-Up', 'core'),
   ex('farmers-carry', "Farmer's Carry", 'core', ['back']),
+  // Added Sept 10 2026 from the first real session
+  ex('trap-bar-deadlift', 'Trap Bar Deadlift', 'back', ['hamstrings', 'glutes', 'quads'], ['hex bar deadlift']),
+  ex('kettlebell-deadlift', 'Kettlebell Deadlift', 'hamstrings', ['glutes', 'back']),
+  ex('landmine-row', 'Landmine Row', 'back', ['biceps']),
+  ex('assisted-pull-up', 'Assisted Pull-Up', 'back', ['biceps']),
+  ex('single-arm-cable-row', 'Single-Arm Cable Row', 'back', ['biceps']),
+  ex('barbell-shrug', 'Barbell Shrug', 'back'),
+  ex('dumbbell-shrug', 'Dumbbell Shrug', 'back'),
+  ex('dumbbell-pullover', 'Dumbbell Pullover', 'chest', ['back']),
+  ex('incline-machine-press', 'Incline Machine Press', 'chest', ['shoulders', 'triceps']),
+  ex('machine-lateral-raise', 'Machine Lateral Raise', 'shoulders'),
+  ex('y-raise', 'Y Raise', 'shoulders', ['back']),
+  ex('reverse-curl', 'Reverse Curl', 'biceps'),
+  ex('wrist-curl', 'Wrist Curl', 'biceps'),
+  ex('spider-curl', 'Spider Curl', 'biceps'),
+  ex('diamond-push-up', 'Diamond Push-Up', 'triceps', ['chest']),
+  ex('single-arm-pushdown', 'Single-Arm Pushdown', 'triceps'),
+  ex('sled-push', 'Sled Push', 'quads', ['glutes', 'calves']),
+  ex('sled-pull', 'Sled Pull', 'hamstrings', ['glutes', 'back']),
+  ex('box-jump', 'Box Jump', 'quads', ['glutes', 'calves']),
+  ex('wall-ball', 'Wall Ball', 'quads', ['shoulders', 'core']),
+  ex('banded-lateral-walk', 'Banded Lateral Walk', 'glutes', [], ['side band steps', 'lateral band walk']),
+  ex('monster-walk', 'Monster Walk', 'glutes'),
+  ex('clamshell', 'Clamshell', 'glutes'),
+  ex('glute-bridge', 'Glute Bridge', 'glutes', ['hamstrings']),
+  ex('single-leg-calf-raise', 'Single-Leg Calf Raise', 'calves'),
+  ex('medicine-ball-slam', 'Medicine Ball Slam', 'core', ['back', 'shoulders']),
+  ex('suitcase-carry', 'Suitcase Carry', 'core', ['back']),
+  ex('mountain-climber', 'Mountain Climber', 'core'),
+  ex('hanging-knee-raise', 'Hanging Knee Raise', 'core'),
+  ex('sit-up', 'Sit-Up', 'core'),
 ]
 
 /** Lifts that take a 10 lb jump when stalled: big lower body barbell and machine compound lifts. Everything else gets 5 lb. */
 const BIG_LIFT_IDS = new Set([
   'back-squat', 'front-squat', 'box-squat', 'smith-machine-squat', 'belt-squat', 'leg-press', 'hack-squat',
-  'deadlift', 'sumo-deadlift', 'romanian-deadlift', 'stiff-leg-deadlift', 'rack-pull',
+  'deadlift', 'sumo-deadlift', 'trap-bar-deadlift', 'romanian-deadlift', 'stiff-leg-deadlift', 'rack-pull',
   'hip-thrust', 'barbell-glute-bridge', 'good-morning',
 ])
 
 export function suggestedIncrement(exercise: Exercise): 5 | 10 {
   return BIG_LIFT_IDS.has(exercise.id) ? 10 : 5
+}
+
+/** Case-insensitive search over names and aliases. Blank query returns nothing. */
+export function searchExercises(exercises: Exercise[], query: string): Exercise[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  return exercises.filter((e) => e.name.toLowerCase().includes(q) || (e.aliases ?? []).some((a) => a.toLowerCase().includes(q)))
 }

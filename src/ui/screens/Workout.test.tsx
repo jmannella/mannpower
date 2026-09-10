@@ -95,15 +95,92 @@ describe('Workout', () => {
 
   test('custom exercise is created from the search box', async () => {
     renderWorkout()
-    await userEvent.type(await screen.findByLabelText('Search exercises'), 'Sled Push')
-    await userEvent.click(await screen.findByRole('button', { name: /Add "Sled Push"/ }))
+    await userEvent.type(await screen.findByLabelText('Search exercises'), 'Tire Flip')
+    await userEvent.click(await screen.findByRole('button', { name: /Add "Tire Flip"/ }))
     // "Quads" appears in both the main and the also-works rows until a main muscle is picked; the first is the main row.
     await userEvent.click((await screen.findAllByRole('button', { name: 'Quads' }))[0])
     await userEvent.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(async () => {
       const w = await getWorkoutByDate('2026-09-08')
       expect(w?.entries).toHaveLength(1)
-      expect((await db.exercises.toArray())[0].name).toBe('Sled Push')
+      expect((await db.exercises.toArray())[0].name).toBe('Tire Flip')
     })
+  })
+})
+
+describe('Workout: swap, superset, stars', () => {
+  test('changing the exercise on a card keeps its sets', async () => {
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'e1', exerciseId: 'deadlift', sets: [{ weight: 185, reps: 5, warmup: false }] }],
+    })
+    renderWorkout()
+    await userEvent.click(await screen.findByRole('button', { name: 'Change Deadlift' }))
+    await userEvent.type(await screen.findByLabelText('Search replacement'), 'trap bar')
+    await userEvent.click(await screen.findByRole('button', { name: 'Trap Bar Deadlift' }))
+    await waitFor(async () => {
+      const w = await getWorkoutByDate('2026-09-08')
+      expect(w?.entries[0].exerciseId).toBe('trap-bar-deadlift')
+      expect(w?.entries[0].sets).toEqual([{ weight: 185, reps: 5, warmup: false }])
+    })
+    expect(await screen.findByRole('heading', { name: 'Trap Bar Deadlift' })).toBeInTheDocument()
+  })
+
+  test('superset toggle links a card to the next and shows the group label', async () => {
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [
+        { id: 'e1', exerciseId: 'back-squat', sets: [] },
+        { id: 'e2', exerciseId: 'plank', sets: [] },
+      ],
+    })
+    renderWorkout()
+    await userEvent.click(await screen.findByRole('button', { name: 'Superset Back Squat with next' }))
+    await waitFor(async () => {
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].supersetWithNext).toBe(true)
+    })
+    expect(await screen.findByText('Superset')).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Unlink Back Squat superset' }))
+    await waitFor(async () => {
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].supersetWithNext).toBe(false)
+    })
+  })
+
+  test('a PR shows a gold star on the card', async () => {
+    await saveWorkout({
+      id: 'prev', date: '2026-09-01', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'e', exerciseId: 'back-squat', sets: [{ weight: 175, reps: 5, warmup: false }] }],
+    })
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'e2', exerciseId: 'back-squat', sets: [{ weight: 185, reps: 5, warmup: false }] }],
+    })
+    renderWorkout()
+    expect((await screen.findAllByLabelText('Personal record')).length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('Workout: superset chains', () => {
+  test('linking A to B clears an existing B to C link and hides the button on B', async () => {
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [
+        { id: 'a', exerciseId: 'back-squat', sets: [] },
+        { id: 'b', exerciseId: 'plank', sets: [], supersetWithNext: true },
+        { id: 'c', exerciseId: 'push-up', sets: [] },
+      ],
+    })
+    renderWorkout()
+    // B is linked to C, so A must not offer to link to B.
+    expect(await screen.findByRole('button', { name: 'Unlink Plank superset' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Superset Back Squat with next' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink Plank superset' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Superset Back Squat with next' }))
+    await waitFor(async () => {
+      const w = await getWorkoutByDate('2026-09-08')
+      expect(w?.entries.map((e) => e.supersetWithNext ?? false)).toEqual([true, false, false])
+    })
+    expect(screen.queryByRole('button', { name: 'Unlink Plank superset' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Superset Plank with next' })).toBeNull()
   })
 })

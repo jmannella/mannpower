@@ -45,7 +45,7 @@ export default function History() {
               </div>
               <div className="row">
                 <span className={`pill ${w.withTrainer ? 'pill-trainer' : 'pill-solo'}`}>{w.withTrainer ? 'Trainer' : 'Solo'}</span>
-                {prCount > 0 && <span className="pill pill-pr">{prCount} PR</span>}
+                {prCount > 0 && <span className="pill pill-pr">★ {prCount} PR</span>}
                 {hasPain && <span className="pill pill-pain">Pain</span>}
               </div>
             </button>
