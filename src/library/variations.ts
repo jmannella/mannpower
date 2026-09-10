@@ -18,5 +18,10 @@ export function joinVariation(tags: string[]): string | undefined {
 
 /** Canonical form for comparing variants: lowercased tags in a stable order. Plain lift is the empty string. */
 export function normalizeVariation(variation?: string): string {
-  return variationTags(variation).map((t) => t.toLowerCase()).sort().join(', ')
+  return [...new Set(variationTags(variation).map((t) => t.toLowerCase()))].sort().join(', ')
+}
+
+/** Find the variation text as it was typed for a normalized key, for display. */
+export function variationLabelFor(entries: { exerciseId: string; variation?: string }[], exerciseId: string, normalized: string): string {
+  return entries.find((e) => e.exerciseId === exerciseId && normalizeVariation(e.variation) === normalized)?.variation ?? normalized
 }

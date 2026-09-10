@@ -2,6 +2,7 @@ import { MUSCLE_GROUPS, MUSCLE_LABELS, type Dataset, type MuscleGroup } from '..
 import { addDays, inRange, weekEnd, weekStart } from '../domain/dates'
 import { BUILTIN_EXERCISES } from '../library/exercises'
 import { bodyAreaLabel } from '../library/bodyAreas'
+import { variationLabelFor } from '../library/variations'
 import { exerciseMap, workoutVolume, workoutWorkingSetCount } from './sets'
 import { prsForWorkout, type PR } from './prs'
 import { underTrainedGroups, weeklyMuscleLoad, type GroupLoad } from './muscle'
@@ -34,7 +35,9 @@ export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
   const end = weekEnd(weekEndDate)
   const start = weekStart(weekEndDate)
   const exMap = exerciseMap([...BUILTIN_EXERCISES, ...ds.exercises])
-  const name = (id: string, variation?: string) => (exMap.get(id)?.name ?? id) + (variation ? ` (${variation})` : '')
+  const allEntries = ds.workouts.flatMap((w) => w.entries)
+  const name = (id: string, variation?: string) =>
+    (exMap.get(id)?.name ?? id) + (variation ? ` (${variationLabelFor(allEntries, id, variation)})` : '')
   const workouts = [...ds.workouts].sort((a, b) => a.date.localeCompare(b.date))
   const inWeek = workouts.filter((w) => inRange(w.date, start, end))
   const prevWeek = workouts.filter((w) => inRange(w.date, addDays(start, -7), addDays(start, -1)))

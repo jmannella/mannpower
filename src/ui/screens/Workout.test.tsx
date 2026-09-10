@@ -212,7 +212,7 @@ describe('Workout: variations', () => {
     })
     expect(await screen.findByText(/First time logging this/)).toBeInTheDocument()
     // Remove Seated so the variant matches the earlier tempo session.
-    await userEvent.click(screen.getByRole('button', { name: 'Remove variation Seated' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Seated from Back Squat' }))
     await waitFor(async () => {
       expect((await getWorkoutByDate('2026-09-08'))?.entries[0].variation).toBe('3 second hold')
     })
@@ -226,11 +226,11 @@ describe('Workout: variations', () => {
     })
     renderWorkout()
     await userEvent.click(await screen.findByRole('button', { name: 'Add variation to Plank' }))
-    await userEvent.type(screen.getByLabelText('Other variation'), 'Weighted 25 lb')
+    await userEvent.type(screen.getByLabelText('Other variation'), 'Weighted 25 lb, deficit')
     await userEvent.click(screen.getByRole('button', { name: 'Add' }))
     await userEvent.click(screen.getByRole('button', { name: 'Done' }))
     await waitFor(async () => {
-      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].variation).toBe('Weighted 25 lb')
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].variation).toBe('Weighted 25 lb, deficit')
     })
   })
 })

@@ -77,8 +77,9 @@ export default function Workout() {
     void update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, exerciseId } : e)) }))
     setSwapFor(null)
   }
-  const setVariation = (id: string, tags: string[]) =>
-    update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, variation: joinVariation(tags) } : e)) }))
+  // Tags are transformed from the stored entry inside the transaction, never from render state.
+  const setVariation = (id: string, fn: (tags: string[]) => string[]) =>
+    update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, variation: joinVariation(fn(variationTags(e.variation))) } : e)) }))
   const setSuperset = (id: string, on: boolean) =>
     update((w) => {
       const i = w.entries.findIndex((e) => e.id === id)
@@ -166,7 +167,7 @@ export default function Workout() {
       )}
 
       {variationEntry && (
-        <VariationSheet name={exMap.get(variationEntry.exerciseId)?.name ?? ''} tags={variationTags(variationEntry.variation)} onChange={(tags) => setVariation(variationEntry.id, tags)} onClose={() => setVariationFor(null)} />
+        <VariationSheet name={exMap.get(variationEntry.exerciseId)?.name ?? ''} tags={variationTags(variationEntry.variation)} onChange={(fn) => setVariation(variationEntry.id, fn)} onClose={() => setVariationFor(null)} />
       )}
 
       {swapEntry && (
@@ -243,7 +244,7 @@ export default function Workout() {
               {tags.map((t) => (
                 <span key={t} className="chip chip-on chip-cyan variation-chip">
                   {t}
-                  <button type="button" className="chip-x" aria-label={`Remove variation ${t}`} onClick={() => setVariation(entry.id, tags.filter((x) => x !== t))}>×</button>
+                  <button type="button" className="chip-x" aria-label={`Remove ${t} from ${name}`} onClick={() => setVariation(entry.id, (cur) => cur.filter((x) => x.toLowerCase() !== t.toLowerCase()))}>×</button>
                 </span>
               ))}
               <button type="button" className="chip" aria-label={`Add variation to ${name}`} onClick={() => setVariationFor(entry.id)}>+ Variation</button>
@@ -363,13 +364,15 @@ function CustomExerciseSheet({ name, onClose, onCreate }: { name: string; onClos
 }
 
 /** Pick preset tags or type a free one. Every change saves immediately; Done just closes. */
-function VariationSheet({ name, tags, onChange, onClose }: { name: string; tags: string[]; onChange: (tags: string[]) => void; onClose: () => void }) {
+function VariationSheet({ name, tags, onChange, onClose }: { name: string; tags: string[]; onChange: (fn: (tags: string[]) => string[]) => void; onClose: () => void }) {
   const [other, setOther] = useState('')
-  const has = (t: string) => tags.some((x) => x.toLowerCase() === t.toLowerCase())
-  const toggle = (t: string) => onChange(has(t) ? tags.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...tags, t])
+  const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+  const has = (t: string) => tags.some((x) => same(x, t))
+  const toggle = (t: string) => onChange((cur) => (cur.some((x) => same(x, t)) ? cur.filter((x) => !same(x, t)) : [...cur, t]))
+  // Free text may hold several tags separated by commas, matching the stored form.
   const addOther = () => {
-    const t = other.trim()
-    if (t && !has(t)) onChange([...tags, t])
+    const typed = other.split(',').map((t) => t.trim()).filter(Boolean)
+    if (typed.length) onChange((cur) => typed.reduce((acc, t) => (acc.some((x) => same(x, t)) ? acc : [...acc, t]), cur))
     setOther('')
   }
   return (

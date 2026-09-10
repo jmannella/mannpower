@@ -1,3 +1,4 @@
+import { joinVariation, normalizeVariation } from './variations'
 import { MUSCLE_GROUPS } from '../domain/types'
 import { BUILTIN_EXERCISES, searchExercises, suggestedIncrement } from './exercises'
 
@@ -69,5 +70,15 @@ describe('library additions and search', () => {
     expect(BUILTIN_EXERCISES.length).toBeGreaterThanOrEqual(120)
     const aliases = BUILTIN_EXERCISES.flatMap((e) => e.aliases ?? []).map((a) => a.toLowerCase())
     expect(new Set(aliases).size).toBe(aliases.length)
+  })
+})
+
+describe('variation helpers', () => {
+  test('normalizeVariation is order and case independent and dedupes', () => {
+    expect(normalizeVariation('Seated, Pause')).toBe(normalizeVariation('pause, SEATED'))
+    expect(normalizeVariation('Seated, seated')).toBe('seated')
+    expect(normalizeVariation(undefined)).toBe('')
+    expect(joinVariation(['Seated', ' ', 'Pause'])).toBe('Seated, Pause')
+    expect(joinVariation([])).toBeUndefined()
   })
 })
