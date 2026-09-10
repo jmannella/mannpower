@@ -17,6 +17,7 @@ import { workoutMuscleLoad } from '../../stats/muscle'
 import { flareRate } from '../../stats/pain'
 import { bodyAreaLabel } from '../../library/bodyAreas'
 import { searchExercises } from '../../library/exercises'
+import { VARIATION_GROUPS, joinVariation, normalizeVariation, variationTags } from '../../library/variations'
 
 export default function Workout() {
   const { date = todayISO() } = useParams()
@@ -34,6 +35,7 @@ export default function Workout() {
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [pulseEntry, setPulseEntry] = useState<string | null>(null)
   const [swapFor, setSwapFor] = useState<string | null>(null)
+  const [variationFor, setVariationFor] = useState<string | null>(null)
 
   useEffect(() => {
     if (!pulseEntry) return
@@ -75,6 +77,8 @@ export default function Workout() {
     void update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, exerciseId } : e)) }))
     setSwapFor(null)
   }
+  const setVariation = (id: string, tags: string[]) =>
+    update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, variation: joinVariation(tags) } : e)) }))
   const setSuperset = (id: string, on: boolean) =>
     update((w) => {
       const i = w.entries.findIndex((e) => e.id === id)
@@ -92,7 +96,10 @@ export default function Workout() {
     if (entry && prsForWorkout(workouts, next).some((p) => p.exerciseId === entry.exerciseId)) setPulseEntry(entryId)
   }
 
-  const lastTime = (exerciseId: string) => exerciseHistory(workouts, exerciseId).filter((s) => s.date < date).at(-1)
+  // A variant (exercise plus its tags) is its own lift for last time, PRs and stars.
+  const lastTime = (entry: WorkoutEntry) =>
+    exerciseHistory(workouts, entry.exerciseId, normalizeVariation(entry.variation)).filter((s) => s.date < date).at(-1)
+  const variantKey = (exerciseId: string, variation?: string) => `${exerciseId}|${normalizeVariation(variation)}`
   const q = query.trim().toLowerCase()
   const results = searchExercises(exercises, query).slice(0, 30)
   const exact = results.some((e) => e.name.toLowerCase() === q || (e.aliases ?? []).some((a) => a.toLowerCase() === q))
@@ -100,8 +107,10 @@ export default function Workout() {
   const w = workout ?? draft()
   const entries = workout?.entries ?? []
   const prs = workout ? prsForWorkout(workouts, workout) : []
-  const starred = new Set(prs.map((p) => p.exerciseId))
+  const starred = new Set(prs.map((p) => `${p.exerciseId}|${p.variation}`))
   const swapEntry = entries.find((e) => e.id === swapFor)
+  const variationEntry = entries.find((e) => e.id === variationFor)
+  const variationLabel = (exerciseId: string, normalized: string) => entries.find((e) => e.exerciseId === exerciseId && normalizeVariation(e.variation) === normalized)?.variation ?? normalized
   // Cards linked by "superset with next" render inside one dashed group.
   const groups: WorkoutEntry[][] = []
   for (let i = 0; i < entries.length; i++) {
@@ -156,6 +165,10 @@ export default function Workout() {
         <CustomExerciseSheet name={query.trim()} onClose={() => setCustomOpen(false)} onCreate={async (ex) => { await saveExercise(ex); setCustomOpen(false); addExercise(ex.id) }} />
       )}
 
+      {variationEntry && (
+        <VariationSheet name={exMap.get(variationEntry.exerciseId)?.name ?? ''} tags={variationTags(variationEntry.variation)} onChange={(tags) => setVariation(variationEntry.id, tags)} onClose={() => setVariationFor(null)} />
+      )}
+
       {swapEntry && (
         <SwapSheet current={exMap.get(swapEntry.exerciseId)?.name ?? ''} exercises={exercises} onClose={() => setSwapFor(null)} onPick={(exerciseId) => swapExercise(swapEntry.id, exerciseId)} />
       )}
@@ -181,7 +194,7 @@ export default function Workout() {
           <div className="list">
             {prs.map((p, i) => (
               <div key={i} className="list-item">
-                <span><span className="pill pill-pr">★ PR</span> {exMap.get(p.exerciseId)?.name} {p.kind === 'e1rm' ? 'e1RM' : 'top weight'}</span>
+                <span><span className="pill pill-pr">★ PR</span> {exMap.get(p.exerciseId)?.name}{p.variation ? ` (${variationLabel(p.exerciseId, p.variation)})` : ''} {p.kind === 'e1rm' ? 'e1RM' : 'top weight'}</span>
                 <span className="muted">{Math.round(p.previous)} to {Math.round(p.current)}</span>
               </div>
             ))}
@@ -203,11 +216,12 @@ export default function Workout() {
 
   function renderCard(entry: WorkoutEntry, marker?: 'A' | 'B') {
     const idx = entries.findIndex((e) => e.id === entry.id)
-        const ex = exMap.get(entry.exerciseId)
-        const name = ex?.name ?? entry.exerciseId
-        const last = lastTime(entry.exerciseId)
-        const flare = flareRate(workouts, pain, entry.exerciseId)
-        const isPairSecond = idx > 0 && entries[idx - 1].supersetWithNext === true
+    const ex = exMap.get(entry.exerciseId)
+    const name = ex?.name ?? entry.exerciseId
+    const last = lastTime(entry)
+    const tags = variationTags(entry.variation)
+    const flare = flareRate(workouts, pain, entry.exerciseId)
+    const isPairSecond = idx > 0 && entries[idx - 1].supersetWithNext === true
     const nextLinked = entries[idx + 1]?.supersetWithNext === true
     const canLink = idx < entries.length - 1 && !isPairSecond && !nextLinked
         return (
@@ -216,7 +230,7 @@ export default function Workout() {
               <div className="row">
                 {marker && <span className="superset-marker" aria-hidden="true">{marker}</span>}
                 <Link to={`/exercise/${entry.exerciseId}`}><h2>{name}</h2></Link>
-                {starred.has(entry.exerciseId) && <span className="star" role="img" aria-label="Personal record">★</span>}
+                {starred.has(variantKey(entry.exerciseId, entry.variation)) && <span className="star" role="img" aria-label="Personal record">★</span>}
               </div>
               <div className="row">
                 <button type="button" className="icon-btn" aria-label={`Change ${name}`} onClick={() => setSwapFor(entry.id)}>⇄</button>
@@ -224,6 +238,15 @@ export default function Workout() {
                 <button type="button" className="icon-btn" aria-label="Move down" disabled={idx === entries.length - 1} onClick={() => moveEntry(entry.id, 1)}>▼</button>
                 <button type="button" className="icon-btn" aria-label={`Remove ${name}`} onClick={() => removeEntry(entry.id)}>×</button>
               </div>
+            </div>
+            <div className="chips">
+              {tags.map((t) => (
+                <span key={t} className="chip chip-on chip-cyan variation-chip">
+                  {t}
+                  <button type="button" className="chip-x" aria-label={`Remove variation ${t}`} onClick={() => setVariation(entry.id, tags.filter((x) => x !== t))}>×</button>
+                </span>
+              ))}
+              <button type="button" className="chip" aria-label={`Add variation to ${name}`} onClick={() => setVariationFor(entry.id)}>+ Variation</button>
             </div>
             <div className="muted">
               {last ? `Last time: ${last.sets.map((s) => `${s.weight} x ${s.reps}`).join(', ')}` : 'First time logging this'}
@@ -335,6 +358,39 @@ function CustomExerciseSheet({ name, onClose, onCreate }: { name: string; onClos
       </div>
       <button type="button" className="btn btn-primary btn-block" disabled={!primary || !title.trim()}
         onClick={() => primary && onCreate({ id: `custom-${newId()}`, name: title.trim(), primary, secondary, custom: true })}>Create</button>
+    </Sheet>
+  )
+}
+
+/** Pick preset tags or type a free one. Every change saves immediately; Done just closes. */
+function VariationSheet({ name, tags, onChange, onClose }: { name: string; tags: string[]; onChange: (tags: string[]) => void; onClose: () => void }) {
+  const [other, setOther] = useState('')
+  const has = (t: string) => tags.some((x) => x.toLowerCase() === t.toLowerCase())
+  const toggle = (t: string) => onChange(has(t) ? tags.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...tags, t])
+  const addOther = () => {
+    const t = other.trim()
+    if (t && !has(t)) onChange([...tags, t])
+    setOther('')
+  }
+  return (
+    <Sheet open onClose={onClose} title="Variation">
+      <div className="muted">{name}{tags.length ? `: ${tags.join(', ')}` : ''}. Tracked as its own lift for records.</div>
+      {VARIATION_GROUPS.map((g) => (
+        <div key={g.label} className="field">
+          <span className="field-label">{g.label}</span>
+          <div className="chips">
+            {g.tags.map((t) => <Chip key={t} on={has(t)} onClick={() => toggle(t)} className="chip-cyan">{t}</Chip>)}
+          </div>
+        </div>
+      ))}
+      <div className="field">
+        <span className="field-label">Other</span>
+        <div className="row">
+          <input className="input" aria-label="Other variation" placeholder="Weighted, deficit, 2 count" value={other} onChange={(e) => setOther(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addOther() }} />
+          <button type="button" className="btn" onClick={addOther}>Add</button>
+        </div>
+      </div>
+      <button type="button" className="btn btn-primary btn-block" onClick={onClose}>Done</button>
     </Sheet>
   )
 }

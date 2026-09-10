@@ -26,11 +26,11 @@ describe('prs', () => {
     expect(prsForWorkout(all, w1)).toEqual([]) // first ever session is not a PR
     const p2 = prsForWorkout(all, w2)
     expect(p2).toEqual([
-      { exerciseId: 'back-squat', kind: 'e1rm', previous: epley(135, 10), current: epley(145, 8) },
-      { exerciseId: 'back-squat', kind: 'weight', previous: 135, current: 145 },
+      { exerciseId: 'back-squat', variation: '', kind: 'e1rm', previous: epley(135, 10), current: epley(145, 8) },
+      { exerciseId: 'back-squat', variation: '', kind: 'weight', previous: 135, current: 145 },
     ])
     const p3 = prsForWorkout(all, w3)
-    expect(p3).toEqual([{ exerciseId: 'back-squat', kind: 'e1rm', previous: epley(145, 8), current: epley(145, 10) }])
+    expect(p3).toEqual([{ exerciseId: 'back-squat', variation: '', kind: 'e1rm', previous: epley(145, 8), current: epley(145, 10) }])
   })
 
   test('adding weight to a bodyweight exercise counts as a PR', () => {
@@ -38,8 +38,31 @@ describe('prs', () => {
     const bw2 = mkWorkout('2026-09-05', [mkEntry('push-up', [[25, 10]])])
     expect(prsForWorkout([bw1, bw2], bw1)).toEqual([])
     expect(prsForWorkout([bw1, bw2], bw2)).toEqual([
-      { exerciseId: 'push-up', kind: 'e1rm', previous: 0, current: epley(25, 10) },
-      { exerciseId: 'push-up', kind: 'weight', previous: 0, current: 25 },
+      { exerciseId: 'push-up', variation: '', kind: 'e1rm', previous: 0, current: epley(25, 10) },
+      { exerciseId: 'push-up', variation: '', kind: 'weight', previous: 0, current: 25 },
     ])
+  })
+})
+
+describe('variations are separate lifts', () => {
+  const plain = mkWorkout('2026-09-01', [mkEntry('back-squat', [[185, 5]])])
+  const tempo = mkWorkout('2026-09-03', [{ ...mkEntry('back-squat', [[135, 5]]), variation: '3 second hold' }])
+  const tempoAgain = mkWorkout('2026-09-05', [{ ...mkEntry('back-squat', [[145, 5]]), variation: '3 Second Hold' }])
+  const all = [plain, tempo, tempoAgain]
+
+  test('exerciseHistory can filter by variant and carries the variation', () => {
+    expect(exerciseHistory(all, 'back-squat').map((s) => s.date)).toEqual(['2026-09-01', '2026-09-03', '2026-09-05'])
+    expect(exerciseHistory(all, 'back-squat', '').map((s) => s.date)).toEqual(['2026-09-01'])
+    expect(exerciseHistory(all, 'back-squat', '3 second hold').map((s) => s.date)).toEqual(['2026-09-03', '2026-09-05'])
+    expect(exerciseHistory(all, 'back-squat', '3 second hold')[1].variation).toBe('3 Second Hold')
+  })
+
+  test('a lighter tempo set is not a regression and beating the tempo best is its own PR', () => {
+    expect(prsForWorkout(all, tempo)).toEqual([]) // first tempo session, nothing to beat
+    expect(prsForWorkout(all, tempoAgain)).toEqual([
+      { exerciseId: 'back-squat', variation: '3 second hold', kind: 'e1rm', previous: epley(135, 5), current: epley(145, 5) },
+      { exerciseId: 'back-squat', variation: '3 second hold', kind: 'weight', previous: 135, current: 145 },
+    ])
+    expect(bestBefore(all, 'back-squat', '2026-09-06', '')).toEqual({ e1rm: epley(185, 5), weight: 185, sessions: 1 })
   })
 })
