@@ -159,3 +159,28 @@ describe('Workout: swap, superset, stars', () => {
     expect((await screen.findAllByLabelText('Personal record')).length).toBeGreaterThanOrEqual(1)
   })
 })
+
+describe('Workout: superset chains', () => {
+  test('linking A to B clears an existing B to C link and hides the button on B', async () => {
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [
+        { id: 'a', exerciseId: 'back-squat', sets: [] },
+        { id: 'b', exerciseId: 'plank', sets: [], supersetWithNext: true },
+        { id: 'c', exerciseId: 'push-up', sets: [] },
+      ],
+    })
+    renderWorkout()
+    // B is linked to C, so A must not offer to link to B.
+    expect(await screen.findByRole('button', { name: 'Unlink Plank superset' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Superset Back Squat with next' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink Plank superset' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Superset Back Squat with next' }))
+    await waitFor(async () => {
+      const w = await getWorkoutByDate('2026-09-08')
+      expect(w?.entries.map((e) => e.supersetWithNext ?? false)).toEqual([true, false, false])
+    })
+    expect(screen.queryByRole('button', { name: 'Unlink Plank superset' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Superset Plank with next' })).toBeNull()
+  })
+})

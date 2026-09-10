@@ -76,7 +76,13 @@ export default function Workout() {
     setSwapFor(null)
   }
   const setSuperset = (id: string, on: boolean) =>
-    update((w) => ({ ...w, entries: w.entries.map((e) => (e.id === id ? { ...e, supersetWithNext: on } : e)) }))
+    update((w) => {
+      const i = w.entries.findIndex((e) => e.id === id)
+      const entries = w.entries.map((e) => (e.id === id ? { ...e, supersetWithNext: on } : e))
+      // A card can only be in one pair: linking A to B drops any link B had to C.
+      if (on && entries[i + 1]) entries[i + 1] = { ...entries[i + 1], supersetWithNext: false }
+      return { ...w, entries }
+    })
   const updateSets = async (entryId: string, fn: (sets: SetRecord[]) => SetRecord[]) => {
     const next = await modifyWorkoutByDate(date, draft, (w) => ({
       ...w,
@@ -89,7 +95,7 @@ export default function Workout() {
   const lastTime = (exerciseId: string) => exerciseHistory(workouts, exerciseId).filter((s) => s.date < date).at(-1)
   const q = query.trim().toLowerCase()
   const results = searchExercises(exercises, query).slice(0, 30)
-  const exact = results.some((e) => e.name.toLowerCase() === q)
+  const exact = results.some((e) => e.name.toLowerCase() === q || (e.aliases ?? []).some((a) => a.toLowerCase() === q))
 
   const w = workout ?? draft()
   const entries = workout?.entries ?? []
@@ -202,7 +208,8 @@ export default function Workout() {
         const last = lastTime(entry.exerciseId)
         const flare = flareRate(workouts, pain, entry.exerciseId)
         const isPairSecond = idx > 0 && entries[idx - 1].supersetWithNext === true
-        const canLink = idx < entries.length - 1 && !isPairSecond
+    const nextLinked = entries[idx + 1]?.supersetWithNext === true
+    const canLink = idx < entries.length - 1 && !isPairSecond && !nextLinked
         return (
           <div key={entry.id} className={`card ${pulseEntry === entry.id ? 'pr-pulse' : ''}`}>
             <div className="row-between">
