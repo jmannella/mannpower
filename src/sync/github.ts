@@ -45,7 +45,8 @@ export class GitHubContents {
     private token: string,
     private repo: string,
     private path: string = 'data.json',
-    private fetchFn: typeof fetch = fetch,
+    // Wrapped so fetch is called on the global, not on this object; browsers throw "Illegal invocation" otherwise.
+    private fetchFn: typeof fetch = (input, init) => globalThis.fetch(input, init),
   ) {}
 
   private url(): string {

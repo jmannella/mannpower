@@ -46,3 +46,22 @@ describe('GitHubContents', () => {
     await expect(c.put('x')).rejects.toBeInstanceOf(SyncError)
   })
 })
+
+describe('GitHubContents default fetch', () => {
+  test('calls the global fetch with the global as receiver, never the client instance', async () => {
+    const original = globalThis.fetch
+    let receiver: unknown = 'unset'
+    globalThis.fetch = vi.fn(function (this: unknown) {
+      receiver = this
+      return Promise.resolve({ status: 404, ok: false, json: async () => ({}) } as Response)
+    }) as unknown as typeof fetch
+    try {
+      const c = new GitHubContents('tok', 'r/d')
+      expect(await c.get()).toBeNull()
+      expect(receiver === globalThis || receiver === undefined).toBe(true)
+      expect(receiver).not.toBe(c)
+    } finally {
+      globalThis.fetch = original
+    }
+  })
+})
