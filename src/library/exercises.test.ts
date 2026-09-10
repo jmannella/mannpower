@@ -1,5 +1,5 @@
 import { MUSCLE_GROUPS } from '../domain/types'
-import { BUILTIN_EXERCISES, suggestedIncrement } from './exercises'
+import { BUILTIN_EXERCISES, searchExercises, suggestedIncrement } from './exercises'
 
 describe('built-in exercise library', () => {
   test('has about a hundred exercises', () => {
@@ -48,5 +48,26 @@ describe('built-in exercise library', () => {
     expect(suggestedIncrement(rackPull)).toBe(10)
     expect(suggestedIncrement(deadlift)).toBe(10)
     expect(suggestedIncrement(rdl)).toBe(10)
+  })
+})
+
+describe('library additions and search', () => {
+  test('trap bar deadlift and banded lateral walk exist and are found by alias', () => {
+    expect(BUILTIN_EXERCISES.find((e) => e.id === 'trap-bar-deadlift')?.primary).toBe('back')
+    expect(suggestedIncrement(BUILTIN_EXERCISES.find((e) => e.id === 'trap-bar-deadlift')!)).toBe(10)
+    expect(searchExercises(BUILTIN_EXERCISES, 'hex bar').map((e) => e.id)).toEqual(['trap-bar-deadlift'])
+    expect(searchExercises(BUILTIN_EXERCISES, 'side band').map((e) => e.id)).toEqual(['banded-lateral-walk'])
+  })
+
+  test('searchExercises matches names case-insensitively and returns nothing for blank', () => {
+    expect(searchExercises(BUILTIN_EXERCISES, '  ')).toEqual([])
+    expect(searchExercises(BUILTIN_EXERCISES, 'BACK SQ').map((e) => e.id)).toEqual(['back-squat'])
+    expect(searchExercises(BUILTIN_EXERCISES, 'curl').length).toBeGreaterThan(5)
+  })
+
+  test('at least 120 exercises with unique aliases', () => {
+    expect(BUILTIN_EXERCISES.length).toBeGreaterThanOrEqual(120)
+    const aliases = BUILTIN_EXERCISES.flatMap((e) => e.aliases ?? []).map((a) => a.toLowerCase())
+    expect(new Set(aliases).size).toBe(aliases.length)
   })
 })

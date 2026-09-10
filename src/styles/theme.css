@@ -13,6 +13,7 @@
   --green: #4ade80;
   --red: #f87171;
   --yellow: #fbbf24;
+  --gold: #ffd166;
   --radius: 14px;
   --tap: 48px;
   --font-display: 'Bebas Neue', 'Arial Narrow', Impact, sans-serif;
@@ -80,7 +81,11 @@ textarea.input { padding: 12px 14px; min-height: 80px; resize: vertical; }
 .list-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: var(--tap); }
 
 .pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.pill-pr { background: var(--accent); color: #111; }
+.pill-pr { background: var(--gold); color: #111; }
+.star { color: var(--gold); font-size: 22px; line-height: 1; }
+.superset { border: 1px dashed var(--cyan); border-radius: 18px; padding: 8px; display: flex; flex-direction: column; gap: 10px; }
+.superset-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); padding: 0 8px; }
+.superset-marker { font-family: var(--font-display); font-size: 18px; color: var(--cyan); margin-right: 6px; }
 .pill-pain { background: var(--red); color: #111; }
 .pill-trainer { background: var(--cyan-soft); color: var(--cyan); }
 .pill-solo { background: var(--surface-2); color: var(--muted); }
@@ -111,7 +116,7 @@ textarea.input { padding: 12px 14px; min-height: 80px; resize: vertical; }
 .warmup-toggle.on { color: var(--cyan); border-color: var(--cyan); }
 .icon-btn { min-width: var(--tap); min-height: var(--tap); border-radius: 12px; border: none; background: transparent; color: var(--muted); font-size: 20px; cursor: pointer; }
 
-@keyframes pr-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 90, 31, 0.7); } 100% { box-shadow: 0 0 0 16px rgba(255, 90, 31, 0); } }
+@keyframes pr-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 209, 102, 0.8); } 100% { box-shadow: 0 0 0 16px rgba(255, 209, 102, 0); } }
 .pr-pulse { animation: pr-pulse 0.9s ease-out 2; }
 
 .recharts-text { fill: var(--muted); font-size: 12px; }
