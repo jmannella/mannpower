@@ -3,6 +3,7 @@ import { Bar, BarChart, Legend, Line, LineChart, ReferenceLine, ResponsiveContai
 import { Header } from '../components/Header'
 import { Chip } from '../components/Chip'
 import { Section } from '../components/Section'
+import { ChartTip } from '../components/ChartTip'
 import { useDays, useExercises, usePain, useSettings, useWorkouts } from '../hooks'
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type BodyArea } from '../../domain/types'
 import { addDays, daysBetween, formatWeekLabel, todayISO, weekStart } from '../../domain/dates'
@@ -20,7 +21,6 @@ const GROUP_COLORS: Record<string, string> = {
   chest: '#ff5a1f', back: '#22d3ee', shoulders: '#fbbf24', biceps: '#a78bfa', triceps: '#f472b6',
   quads: '#4ade80', hamstrings: '#34d399', glutes: '#fb923c', calves: '#60a5fa', core: '#9a9aa6',
 }
-const tooltipStyle = { background: '#1b1b21', border: '1px solid #2e2e38' }
 const initialDimension = { width: 360, height: 200 }
 
 export default function Trends() {
@@ -100,7 +100,7 @@ export default function Trends() {
             <LineChart data={weight} margin={{ left: -10, right: 10, top: 10 }}>
               <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={24} />
               <YAxis domain={['auto', 'auto']} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
               {settings?.targetBodyWeight ? <ReferenceLine y={settings.targetBodyWeight} stroke="#4ade80" strokeDasharray="4 4" label={{ value: 'target', fill: '#4ade80', fontSize: 11 }} /> : null}
               <Line dataKey="weight" stroke="#22d3ee" strokeWidth={0} dot={{ r: 3, fill: '#22d3ee' }} connectNulls={false} isAnimationActive={false} />
               <Line dataKey="avg7" stroke="#ff5a1f" strokeWidth={3} dot={false} connectNulls isAnimationActive={false} />
@@ -115,8 +115,8 @@ export default function Trends() {
             <BarChart data={muscle} margin={{ left: -10, right: 10, top: 10 }}>
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
+              <Legend verticalAlign="top" iconSize={8} wrapperStyle={{ fontSize: 11, paddingBottom: 6 }} />
               {MUSCLE_GROUPS.map((g) => <Bar key={g} dataKey={`${g}_vol`} name={MUSCLE_LABELS[g]} stackId="v" fill={GROUP_COLORS[g]} isAnimationActive={false} />)}
             </BarChart>
           </ResponsiveContainer>
@@ -129,7 +129,7 @@ export default function Trends() {
             <BarChart data={muscle} margin={{ left: -10, right: 10, top: 10 }}>
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
               <ReferenceLine y={MIN_WEEKLY_SETS} stroke="#fbbf24" strokeDasharray="4 4" />
               {MUSCLE_GROUPS.map((g) => <Bar key={g} dataKey={`${g}_sets`} name={MUSCLE_LABELS[g]} stackId="s" fill={GROUP_COLORS[g]} isAnimationActive={false} />)}
             </BarChart>
@@ -149,7 +149,7 @@ export default function Trends() {
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis yAxisId="l" domain={['auto', 'auto']} />
               <YAxis yAxisId="r" orientation="right" domain={['auto', 'auto']} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
               <Line yAxisId="l" dataKey="e1rm" name="e1RM (lb)" stroke="#ff5a1f" strokeWidth={3} isAnimationActive={false} />
               <Line yAxisId="r" dataKey="rel" name="per lb body weight" stroke="#22d3ee" strokeWidth={2} strokeDasharray="4 4" isAnimationActive={false} />
             </LineChart>
@@ -164,7 +164,7 @@ export default function Trends() {
             <BarChart data={activityRows} margin={{ left: -10, right: 10, top: 10 }}>
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
               {settings?.dailyStepGoal ? <ReferenceLine y={settings.dailyStepGoal * 7} stroke="#4ade80" strokeDasharray="4 4" /> : null}
               <Bar dataKey="steps" name="Steps" fill="#22d3ee" isAnimationActive={false} />
             </BarChart>
@@ -175,8 +175,8 @@ export default function Trends() {
             <BarChart data={activityRows} margin={{ left: -10, right: 10, top: 10 }}>
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
+              <Legend verticalAlign="top" iconSize={8} wrapperStyle={{ fontSize: 11, paddingBottom: 6 }} />
               {cardioTypes.map((t, i) => <Bar key={t} dataKey={t} stackId="c" fill={i === 0 ? '#ff5a1f' : Object.values(GROUP_COLORS)[i % 10]} isAnimationActive={false} />)}
             </BarChart>
           </ResponsiveContainer>
@@ -189,7 +189,7 @@ export default function Trends() {
             <BarChart data={trainerRows} margin={{ left: -10, right: 10, top: 10 }}>
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
               <Bar dataKey="trainer" name="Trainer" fill="#22d3ee" isAnimationActive={false} />
               <Bar dataKey="solo" name="Solo" fill="#9a9aa6" isAnimationActive={false} />
             </BarChart>

@@ -5,6 +5,7 @@ import { Header } from '../components/Header'
 import { Chip } from '../components/Chip'
 import { BigNumber } from '../components/BigNumber'
 import { Section } from '../components/Section'
+import { ChartTip } from '../components/ChartTip'
 import { useDays, useExercises, usePain, useWorkouts } from '../hooks'
 import { MUSCLE_LABELS } from '../../domain/types'
 import { formatShort } from '../../domain/dates'
@@ -66,7 +67,7 @@ export default function ExerciseHistory() {
               <LineChart data={chart} margin={{ left: -10, right: 10, top: 10 }}>
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis domain={['auto', 'auto']} />
-                <Tooltip contentStyle={{ background: '#1b1b21', border: '1px solid #2e2e38' }} />
+                <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
                 <Line type="monotone" dataKey="e1rm" stroke="#ff5a1f" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
