@@ -21,7 +21,7 @@ describe('standards', () => {
     // 47 year old at 240 lb, squat e1RM 300 -> ratio 1.25; novice needs 1.25 * 0.9 = 1.125, intermediate 1.35
     const r = classifyLift(squat, 300, 240, 47)
     expect(r.level).toBe('novice')
-    expect(r.next).toEqual({ level: 'intermediate', e1rm: Math.round(1.5 * 0.9 * 240) })
+    expect(r.next).toEqual({ level: 'intermediate', e1rm: 325 }) // 1.5 * 0.9 * 240 = 324, rounded to 5
     expect(classifyLift(squat, 100, 240, 47).level).toBe('untrained')
     expect(classifyLift(squat, 800, 240, 47).level).toBe('elite')
     expect(classifyLift(squat, 800, 240, 47).next).toBeUndefined()
@@ -78,7 +78,7 @@ describe('mainLiftBenchmarks', () => {
     expect(squat.bestEver).toBeCloseTo(epley(225, 5), 5)
     expect(squat.best4w).toBeCloseTo(epley(195, 5), 5)  // paused variant excluded
     expect(squat.thisWeek).toBeCloseTo(epley(195, 5), 5)
-    expect(squat.slope8wPerWeek).toBeGreaterThan(0)      // Aug 20 to Sep 10 rose
+    expect(squat.slope8wPerWeek).toBeCloseTo((epley(195, 5) - epley(185, 5)) / 3, 5) // two points, 21 days apart
     expect(squat.level).toBe('beginner')                 // 227.5 / 240 = 0.95, beginner needs 0.75 * 0.9 = 0.675, novice 1.125
     const dead = b.find((x) => x.key === 'deadlift')!
     expect(dead.bestEver).toBeCloseTo(epley(225, 5), 5)
@@ -89,11 +89,13 @@ describe('mainLiftBenchmarks', () => {
 
 describe('bodyCompSignal, guidelines, consistency, month lens', () => {
   test('bodyCompSignal reads weight and strength direction together', () => {
-    expect(bodyCompSignal(-1.5, 3)).toBe('likely_fat_loss')
-    expect(bodyCompSignal(-1.5, -4)).toBe('possible_muscle_loss')
-    expect(bodyCompSignal(1.0, 3)).toBe('gaining')
+    expect(bodyCompSignal(-2.5, 1)).toBe('likely_fat_loss')
+    expect(bodyCompSignal(-2.5, -0.5)).toBe('likely_fat_loss') // small strength dip is noise
+    expect(bodyCompSignal(-2.5, -4)).toBe('possible_muscle_loss')
+    expect(bodyCompSignal(-3, -2)).toBe('losing_unclear')
+    expect(bodyCompSignal(2.0, 3)).toBe('gaining')
     expect(bodyCompSignal(undefined, 3)).toBe('unclear')
-    expect(bodyCompSignal(-0.1, 0.5)).toBe('holding')
+    expect(bodyCompSignal(-1.0, 0.5)).toBe('holding') // under the four week threshold
   })
 
   test('guidelineCheck compares to 150 cardio minutes and 8000 steps', () => {

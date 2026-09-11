@@ -116,14 +116,30 @@ export function mainLiftBenchmarks(workouts: Workout[], exMap: Map<string, Exerc
   })
 }
 
-export type BodyCompSignal = 'likely_fat_loss' | 'possible_muscle_loss' | 'gaining' | 'holding' | 'unclear'
+export type BodyCompSignal = 'likely_fat_loss' | 'possible_muscle_loss' | 'losing_unclear' | 'gaining' | 'holding' | 'unclear'
 
-/** Weight change over four weeks (percent) read together with strength change over the same period (percent). */
+export const BODY_COMP_LABELS: Record<BodyCompSignal, string> = {
+  likely_fat_loss: 'likely fat loss (weight down, strength held or up)',
+  possible_muscle_loss: 'possible muscle loss (weight and strength both down)',
+  losing_unclear: 'losing weight with strength slipping a little, worth watching',
+  gaining: 'gaining weight',
+  holding: 'holding steady',
+  unclear: 'not enough data',
+}
+
+/**
+ * Four-week weight change (percent) read together with main-lift strength change over the same four weeks (percent).
+ * A healthy loss of 0.5 to 1 percent a week compounds to roughly 2 to 4 percent over four weeks, so the weight
+ * threshold is 1.5 percent, above the noise of day-to-day water swings.
+ */
 export function bodyCompSignal(weightChangePct?: number, strengthChangePct?: number): BodyCompSignal {
   if (weightChangePct === undefined || strengthChangePct === undefined) return 'unclear'
-  if (weightChangePct <= -0.5 && strengthChangePct >= 0) return 'likely_fat_loss'
-  if (weightChangePct <= -0.5 && strengthChangePct < -2) return 'possible_muscle_loss'
-  if (weightChangePct > 0.5) return 'gaining'
+  if (weightChangePct <= -1.5) {
+    if (strengthChangePct >= -1) return 'likely_fat_loss'
+    if (strengthChangePct < -3) return 'possible_muscle_loss'
+    return 'losing_unclear'
+  }
+  if (weightChangePct > 1.5) return 'gaining'
   return 'holding'
 }
 
@@ -149,7 +165,7 @@ export function consistency(workouts: Workout[], weekEndDate: string): { session
   return { sessions4w: inWindow(4).length, sessions12w: inWindow(12).length, weeksWithTwoPlus4w }
 }
 
-/** True when the given Sunday is the last Sunday of its month, which is when the monthly lens runs. */
+/** True when the given date, which must be a Sunday (a week end), is the last Sunday of its month; the monthly lens runs then. */
 export function isLastSundayOfMonth(date: string): boolean {
   return parseISO(date).getMonth() !== parseISO(addDays(date, 7)).getMonth()
 }

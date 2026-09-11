@@ -109,7 +109,11 @@ export default function Settings() {
         <div className="card">
           <div className="grid-2">
             <NumberField label="Target body weight" value={settings.targetBodyWeight} onCommit={(v) => saveSettings({ targetBodyWeight: v })} suffix="lb" />
-            <NumberField label="Birth year" value={settings.birthYear} onCommit={(v) => saveSettings({ birthYear: v })} allowDecimal={false} />
+            <NumberField label="Birth year" value={settings.birthYear} onCommit={(v) => {
+              const ok = v === undefined || (v >= 1900 && v <= new Date().getFullYear())
+              if (ok) void saveSettings({ birthYear: v })
+              else setMessage('Birth year should be a four digit year, for example 1979.')
+            }} allowDecimal={false} />
             <NumberField label="Daily step goal" value={settings.dailyStepGoal} onCommit={(v) => saveSettings({ dailyStepGoal: v })} allowDecimal={false} />
           </div>
         </div>

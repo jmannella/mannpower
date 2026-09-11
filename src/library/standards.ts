@@ -22,6 +22,7 @@ export const MAIN_LIFTS: MainLift[] = [
   { key: 'bench', label: 'Bench press', exerciseIds: ['barbell-bench-press', 'smith-machine-bench-press'], thresholds: [0.5, 0.75, 1.25, 1.75, 2.0] },
   { key: 'deadlift', label: 'Deadlift', exerciseIds: ['deadlift', 'trap-bar-deadlift', 'sumo-deadlift'], thresholds: [1.0, 1.5, 2.0, 2.5, 3.0] },
   { key: 'overhead', label: 'Overhead press', exerciseIds: ['overhead-press', 'push-press'], thresholds: [0.35, 0.55, 0.8, 1.05, 1.35] },
+  // Rows are not a competition lift; these thresholds are looser folk standards than the four above.
   { key: 'row', label: 'Barbell row', exerciseIds: ['barbell-row', 'pendlay-row'], thresholds: [0.5, 0.75, 1.0, 1.5, 1.75] },
 ]
 
@@ -58,6 +59,7 @@ export function classifyLift(lift: MainLift, e1rm: number, bodyWeight: number, a
   let idx = 0
   for (let i = 0; i < scaled.length; i++) if (ratio >= scaled[i]) idx = i + 1
   const level = LEVELS[idx]
-  const next = idx < scaled.length ? { level: LEVELS[idx + 1], e1rm: Math.round(scaled[idx] * bodyWeight) } : undefined
+  // Rounded to 5 lb: these are rough yardsticks, not a test to pass by the pound.
+  const next = idx < scaled.length ? { level: LEVELS[idx + 1], e1rm: Math.round((scaled[idx] * bodyWeight) / 5) * 5 } : undefined
   return { level, ratio, next }
 }
