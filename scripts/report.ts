@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { GitHubContents } from '../src/sync/github'
 import { validateDataset } from '../src/domain/validate'
 import { digestMarkdown, weeklyDigest } from '../src/stats/digest'
-import { addDays, parseISO, todayISO, weekStart } from '../src/domain/dates'
+import { todayISO, weekEnd } from '../src/domain/dates'
 
 class ReportError extends Error {}
 
@@ -18,10 +18,9 @@ function arg(name: string): string | undefined {
   return next
 }
 
-/** Sunday of the most recent completed week: today if today is Sunday, otherwise last Sunday. */
+/** The Sunday ending the week that contains today. On the scheduled Sunday run that is today; midweek it is the current, partial week. */
 function defaultWeekEnd(): string {
-  const today = todayISO()
-  return parseISO(today).getDay() === 0 ? today : addDays(weekStart(today), -1)
+  return weekEnd(todayISO())
 }
 
 async function loadRaw(): Promise<string> {
