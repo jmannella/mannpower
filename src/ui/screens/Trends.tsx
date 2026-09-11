@@ -11,6 +11,7 @@ import { exerciseMap } from '../../stats/sets'
 import { weeklyMuscleSeries, MIN_WEEKLY_SETS } from '../../stats/muscle'
 import { weeklyActivitySeries } from '../../stats/activity'
 import { exerciseHistory } from '../../stats/prs'
+import { normalizeVariation } from '../../library/variations'
 import { trainerSplit } from '../../stats/trainer'
 import { bodyAreaLabel } from '../../library/bodyAreas'
 
@@ -59,10 +60,24 @@ export default function Trends() {
   }, [workouts, fromWeek, toWeek])
   const split = trainerSplit(workouts, from, today)
 
-  const logged = exercises.filter((e) => workouts.some((w) => w.entries.some((en) => en.exerciseId === e.id)))
-  const [exerciseId, setExerciseId] = useState<string>('')
-  const chosen = exerciseId || logged[0]?.id || ''
-  const strength = exerciseHistory(workouts, chosen).filter((s) => s.date >= from).map((s) => ({
+  // One option per variant, since a tempo or paused lift is tracked as its own lift.
+  const logged = useMemo(() => {
+    const seen = new Map<string, { key: string; label: string }>()
+    for (const w of workouts) for (const en of w.entries) {
+      const ex = exMap.get(en.exerciseId)
+      if (!ex) continue
+      const v = normalizeVariation(en.variation)
+      const key = `${en.exerciseId}|${v}`
+      if (!seen.has(key)) seen.set(key, { key, label: ex.name + (en.variation ? ` (${en.variation})` : '') })
+    }
+    return [...seen.values()].sort((a, b) => a.label.localeCompare(b.label))
+  }, [workouts, exMap])
+  const [variantKey, setVariantKey] = useState<string>('')
+  const chosen = logged.some((l) => l.key === variantKey) ? variantKey : (logged[0]?.key ?? '')
+  const sep = chosen.indexOf('|')
+  const chosenId = sep >= 0 ? chosen.slice(0, sep) : ''
+  const chosenVariation = sep >= 0 ? chosen.slice(sep + 1) : ''
+  const strength = exerciseHistory(workouts, chosenId, chosenVariation).filter((s) => s.date >= from).map((s) => ({
     label: s.date.slice(5), e1rm: Math.round(s.bestE1rm),
     rel: relativeStrength(s.bestE1rm, bodyWeightAvg7(days, s.date)),
   }))
@@ -124,8 +139,8 @@ export default function Trends() {
       </Section>
 
       <Section title="Strength" right={
-        <select className="input" style={{ width: 'auto' }} aria-label="Exercise" value={chosen} onChange={(e) => setExerciseId(e.target.value)}>
-          {logged.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+        <select className="input" style={{ width: 'auto' }} aria-label="Exercise" value={chosen} onChange={(e) => setVariantKey(e.target.value)}>
+          {logged.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
         </select>
       }>
         <div className="card" style={{ height: 220 }}>

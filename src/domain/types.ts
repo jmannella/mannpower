@@ -34,6 +34,8 @@ export interface WorkoutEntry {
   sets: SetRecord[]
   /** Linked to the entry that follows it as a superset pair. */
   supersetWithNext?: boolean
+  /** Comma-separated tags such as "Seated, 3 second hold". A variant is tracked as its own lift. */
+  variation?: string
 }
 
 export interface Workout {

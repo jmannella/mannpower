@@ -173,14 +173,64 @@ describe('Workout: superset chains', () => {
     renderWorkout()
     // B is linked to C, so A must not offer to link to B.
     expect(await screen.findByRole('button', { name: 'Unlink Plank superset' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Superset Back Squat with next' })).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Superset Back Squat with next' })).toBeNull())
     await userEvent.click(screen.getByRole('button', { name: 'Unlink Plank superset' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Superset Back Squat with next' }))
     await waitFor(async () => {
       const w = await getWorkoutByDate('2026-09-08')
       expect(w?.entries.map((e) => e.supersetWithNext ?? false)).toEqual([true, false, false])
     })
-    expect(screen.queryByRole('button', { name: 'Unlink Plank superset' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Superset Plank with next' })).toBeNull()
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Unlink Plank superset' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Superset Plank with next' })).toBeNull()
+    })
+  })
+})
+
+describe('Workout: variations', () => {
+  test('tagging a card stores the variation and switches last time to that variant', async () => {
+    await saveWorkout({
+      id: 'p1', date: '2026-09-01', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'a', exerciseId: 'back-squat', sets: [{ weight: 185, reps: 5, warmup: false }] }],
+    })
+    await saveWorkout({
+      id: 'p2', date: '2026-09-03', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'b', exerciseId: 'back-squat', variation: '3 second hold', sets: [{ weight: 135, reps: 5, warmup: false }] }],
+    })
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'c', exerciseId: 'back-squat', sets: [] }],
+    })
+    renderWorkout()
+    expect(await screen.findByText(/Last time: 185 x 5/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Add variation to Back Squat' }))
+    await userEvent.click(await screen.findByRole('button', { name: '3 second hold' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Seated' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(async () => {
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].variation).toBe('3 second hold, Seated')
+    })
+    expect(await screen.findByText(/First time logging this/)).toBeInTheDocument()
+    // Remove Seated so the variant matches the earlier tempo session.
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Seated from Back Squat' }))
+    await waitFor(async () => {
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].variation).toBe('3 second hold')
+    })
+    expect(await screen.findByText(/Last time: 135 x 5/)).toBeInTheDocument()
+  })
+
+  test('free text variation is added from the sheet', async () => {
+    await saveWorkout({
+      id: 'cur', date: '2026-09-08', withTrainer: true, createdAt: '', updatedAt: '',
+      entries: [{ id: 'c', exerciseId: 'plank', sets: [] }],
+    })
+    renderWorkout()
+    await userEvent.click(await screen.findByRole('button', { name: 'Add variation to Plank' }))
+    await userEvent.type(screen.getByLabelText('Other variation'), 'Weighted 25 lb, deficit')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(async () => {
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].variation).toBe('Weighted 25 lb, deficit')
+    })
   })
 })

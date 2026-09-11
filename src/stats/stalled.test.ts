@@ -12,7 +12,7 @@ describe('stalledLifts', () => {
       mkWorkout('2026-09-05', [mkEntry('back-squat', [[185, 8], [185, 8], [185, 8]])]),
     ]
     expect(stalledLifts(ws, exMap, '2026-09-01')).toEqual([
-      { exerciseId: 'back-squat', topWeight: 185, increment: 10, lastDate: '2026-09-05' },
+      { exerciseId: 'back-squat', variation: '', topWeight: 185, increment: 10, lastDate: '2026-09-05' },
     ])
   })
 
@@ -37,5 +37,18 @@ describe('stalledLifts', () => {
       mkWorkout('2026-08-05', [mkEntry('dumbbell-curl', [[30, 12]])]),
     ]
     expect(stalledLifts(ws, exMap, '2026-09-01')).toEqual([])
+  })
+})
+
+describe('stalledLifts keys by variant', () => {
+  test('a tempo variant stalls independently and reports its variation', () => {
+    const ws = [
+      mkWorkout('2026-09-01', [{ ...mkEntry('back-squat', [[135, 5]]), variation: 'Pause' }]),
+      mkWorkout('2026-09-03', [mkEntry('back-squat', [[185, 5]])]),
+      mkWorkout('2026-09-05', [{ ...mkEntry('back-squat', [[135, 5]]), variation: 'pause' }]),
+    ]
+    expect(stalledLifts(ws, exMap, '2026-09-01')).toEqual([
+      { exerciseId: 'back-squat', variation: 'pause', topWeight: 135, increment: 10, lastDate: '2026-09-05' },
+    ])
   })
 })
