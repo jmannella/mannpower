@@ -89,6 +89,8 @@ export type SyncStatus = 'not_set_up' | 'synced' | 'pending' | 'error'
 export interface SyncedSettings {
   targetBodyWeight?: number
   dailyStepGoal?: number
+  /** Four-digit year, used for age-banded strength standards in the weekly report. */
+  birthYear?: number
   defaultWithTrainer: boolean
   customCardioTypes: string[]
 }

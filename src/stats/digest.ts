@@ -11,6 +11,12 @@ import { lossBandStatus, weeklyBodyWeightChange, type LossBand, type WeeklyWeigh
 import { cardioSummary, stepsSummary, type CardioSummary, type StepsSummary } from './activity'
 import { trainerSplit, type TrainerSplit } from './trainer'
 import { painPatterns, type AreaPattern } from './pain'
+import { bodyWeightAvg7 } from './bodyweight'
+import {
+  ageOn, balanceSummary, bodyCompSignal, consistency, daysSinceGroup, guidelineCheck, isLastSundayOfMonth,
+  mainLiftBenchmarks, strengthChange4w, type BalanceSummary, type BodyCompSignal, type LiftBenchmark,
+} from './longevity'
+import { ageBand } from '../library/standards'
 
 export interface Digest {
   weekStart: string
@@ -29,6 +35,22 @@ export interface Digest {
     patterns: (Omit<AreaPattern, 'exercises'> & { areaLabel: string; exercises: (AreaPattern['exercises'][number] & { exerciseName: string })[] })[]
   }
   streakWeeks: number
+  /** Age on the week's Sunday and the standards band used, when a birth year is set. */
+  age?: number
+  ageBand?: string
+  /** Main-lift benchmarks: you versus you, and you versus published standards for the age band. */
+  benchmarks: LiftBenchmark[]
+  /** Movement balance this week and the trailing four weeks. */
+  balance: { week: BalanceSummary; fourWeeks: BalanceSummary }
+  /** Days since each muscle group was last trained; groups over 10 days listed separately. */
+  daysSinceGroup: Record<MuscleGroup, number | undefined>
+  neglectedGroups: MuscleGroup[]
+  /** Four-week body weight change and main-lift strength change read together. */
+  bodyComp: { weightChange4wPct?: number; strengthChange4wPct?: number; signal: BodyCompSignal }
+  guidelines: { cardioMinutesShort: number; stepsMeetsGuideline?: boolean }
+  consistency: { sessions4w: number; sessions12w: number; weeksWithTwoPlus4w: number }
+  /** True on the last Sunday of the month, when the email adds the long-game section. */
+  monthlyLens: boolean
 }
 
 export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
@@ -58,6 +80,14 @@ export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
     exercises: p.exercises.map((e) => ({ ...e, exerciseName: name(e.exerciseId) })),
   }))
 
+  const bwNow = bodyWeightAvg7(ds.days, end)
+  const bwFourWeeksAgo = bodyWeightAvg7(ds.days, addDays(end, -28))
+  const weightChange4wPct = bwNow !== undefined && bwFourWeeksAgo ? ((bwNow - bwFourWeeksAgo) / bwFourWeeksAgo) * 100 : undefined
+  const strengthChange4wPct = strengthChange4w(workouts, exMap, end)
+  const age = ds.settings.birthYear ? ageOn(ds.settings.birthYear, end) : undefined
+  const since = daysSinceGroup(workouts, exMap, end)
+  const stepsWeek = stepsSummary(ds.days, start, end, ds.settings.dailyStepGoal)
+
   let streakWeeks = 0
   for (let ws = start; ; ws = addDays(ws, -7)) {
     if (!workouts.some((w) => inRange(w.date, ws, weekEnd(ws)))) break
@@ -86,6 +116,16 @@ export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
     trainer: trainerSplit(workouts, start, end),
     pain: { entriesThisWeek: ds.pain.filter((p) => inRange(p.date, start, end)).length, patterns },
     streakWeeks,
+    age,
+    ageBand: age === undefined ? undefined : ageBand(age),
+    benchmarks: mainLiftBenchmarks(workouts, exMap, end, bwNow, age),
+    balance: { week: balanceSummary(workouts, exMap, start, end), fourWeeks: balanceSummary(workouts, exMap, addDays(start, -21), end) },
+    daysSinceGroup: since,
+    neglectedGroups: MUSCLE_GROUPS.filter((g) => since[g] !== undefined && (since[g] as number) > 10),
+    bodyComp: { weightChange4wPct, strengthChange4wPct, signal: bodyCompSignal(weightChange4wPct, strengthChange4wPct) },
+    guidelines: guidelineCheck(cardio.minutes, stepsWeek.mean),
+    consistency: consistency(workouts, end),
+    monthlyLens: isLastSundayOfMonth(end),
   }
 }
 
@@ -123,6 +163,30 @@ export function digestMarkdown(d: Digest): string {
   lines.push(`- Weight band: ${d.bodyWeight.band} (healthy loss is 0.5% to 1.0% per week)`)
   lines.push(`- Step goal days: ${d.steps.daysAtGoal} of ${d.steps.daysLogged} logged`)
   lines.push(`- Cardio sessions: ${d.cardio.sessions}`, '')
+
+  lines.push('## Benchmarks')
+  lines.push(`- Age ${d.age ?? 'unknown'} (band ${d.ageBand ?? 'not set, add a birth year in Settings'}); levels use published body weight ratio standards scaled for the band, plain variants only`)
+  for (const b of d.benchmarks) {
+    if (b.bestEver === undefined) continue
+    const lvl = b.level ? `${b.level} at ${n(b.ratio, 2)}x body weight${b.next ? `, ${b.next.level} needs ${b.next.e1rm} lb e1RM` : ''}` : 'level n/a (needs body weight and birth year)'
+    lines.push(`- ${b.label}: best ever ${n(b.bestEver)} lb e1RM, best 4 weeks ${n(b.best4w)}, this week ${n(b.thisWeek)}, 8 week slope ${b.slope8wPerWeek === undefined ? 'n/a' : `${b.slope8wPerWeek > 0 ? '+' : ''}${n(b.slope8wPerWeek, 1)} lb/week`}; ${lvl}`)
+  }
+  if (d.benchmarks.every((b) => b.bestEver === undefined)) lines.push('- No main lifts logged yet (squat, bench, deadlift, overhead press, row)')
+  lines.push('')
+
+  lines.push('## Balance and longevity markers')
+  const w = d.balance.week
+  const f = d.balance.fourWeeks
+  lines.push(`- Push vs pull volume this week: ${n(w.pushVolume)} vs ${n(w.pullVolume)} lb; four weeks: ${n(f.pushVolume)} vs ${n(f.pullVolume)} lb`)
+  lines.push(`- Upper vs lower volume this week: ${n(w.upperVolume)} vs ${n(w.lowerVolume)} lb; four weeks: ${n(f.upperVolume)} vs ${n(f.lowerVolume)} lb`)
+  lines.push(`- Hinge vs squat pattern sets, four weeks: ${f.hingeSets} vs ${f.squatSets}`)
+  lines.push(`- Single leg or single arm sets, four weeks: ${f.unilateralSets} of ${f.totalSets} (balance and fall prevention)`)
+  lines.push(`- Loaded carry sets, four weeks: ${f.carrySets} (grip strength tracks with healthy ageing)`)
+  lines.push(`- Muscle groups over 10 days untrained: ${d.neglectedGroups.map((g) => `${MUSCLE_LABELS[g]} (${d.daysSinceGroup[g]} days)`).join(', ') || 'none'}`)
+  lines.push(`- Body composition signal: ${d.bodyComp.signal} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)})`)
+  lines.push(`- Guidelines: cardio short of 150 min by ${d.guidelines.cardioMinutesShort} min; steps average ${d.guidelines.stepsMeetsGuideline === undefined ? 'not logged' : d.guidelines.stepsMeetsGuideline ? 'meets' : 'below'} the 8000 a day marker`)
+  lines.push(`- Consistency: ${d.consistency.sessions4w} sessions in 4 weeks, ${d.consistency.sessions12w} in 12, ${d.consistency.weeksWithTwoPlus4w} of the last 4 weeks had 2 or more`)
+  lines.push(`- Monthly lens: ${d.monthlyLens ? 'yes, last Sunday of the month, include the long game section' : 'no'}`, '')
 
   lines.push('## Pain')
   if (d.pain.patterns.length === 0 && d.pain.entriesThisWeek === 0) lines.push('- No pain logged')

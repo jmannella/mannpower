@@ -46,6 +46,7 @@ export function validateDataset(x: unknown): Validation {
   const ds = x as unknown as Dataset
   const settings: SyncedSettings = {
     targetBodyWeight: ds.settings.targetBodyWeight,
+    birthYear: typeof ds.settings.birthYear === 'number' ? ds.settings.birthYear : undefined,
     dailyStepGoal: ds.settings.dailyStepGoal,
     defaultWithTrainer: ds.settings.defaultWithTrainer ?? true,
     customCardioTypes: Array.isArray(ds.settings.customCardioTypes) ? ds.settings.customCardioTypes : [],

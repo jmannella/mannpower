@@ -12,6 +12,7 @@ export async function exportDataset(): Promise<Dataset> {
   ])
   const synced: SyncedSettings = {
     targetBodyWeight: settings.targetBodyWeight,
+    birthYear: settings.birthYear,
     dailyStepGoal: settings.dailyStepGoal,
     defaultWithTrainer: settings.defaultWithTrainer,
     customCardioTypes: settings.customCardioTypes,
