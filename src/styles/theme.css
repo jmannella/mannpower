@@ -25,6 +25,12 @@ html, body { margin: 0; background: var(--bg); color: var(--text); font-family: 
 body { overscroll-behavior-y: contain; }
 /* No double-tap zoom: tapping chart bars must never zoom the page and push the fixed tab bar out of view. */
 html, body { touch-action: manipulation; }
+/* The page must never grow sideways: a fixed bottom bar spans the layout viewport, so any
+   horizontal overflow (a chart wrapper, a long select) pushes the bar past the screen edge. */
+html, body { overflow-x: clip; }
+.recharts-responsive-container, .recharts-wrapper, .recharts-surface, .recharts-legend-wrapper { max-width: 100% !important; }
+.tabbar { width: 100%; max-width: 100vw; }
+.section-title select { max-width: 60vw; }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; margin: 0; }
 h1 { font-size: 34px; }
 h2 { font-size: 26px; }
