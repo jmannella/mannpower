@@ -89,3 +89,33 @@ describe('weeklyDigest', () => {
     expect(digestMarkdown(empty)).toContain('## Summary')
   })
 })
+
+describe('weeklyDigest longevity sections', () => {
+  test('benchmarks, balance, body comp and monthly lens are present', () => {
+    const ds = { ...dataset(), settings: { ...dataset().settings, birthYear: 1979 } }
+    const d = weeklyDigest(ds, '2026-09-13')
+    expect(d.age).toBe(47)
+    expect(d.ageBand).toBe('45 to 49')
+    const squat = d.benchmarks.find((b) => b.key === 'squat')!
+    expect(squat.bestEver).toBeGreaterThan(0)
+    expect(squat.level).toBeDefined()
+    expect(d.balance.week.totalSets).toBe(5)
+    expect(d.neglectedGroups).toEqual([])
+    expect(['likely_fat_loss', 'possible_muscle_loss', 'gaining', 'holding', 'unclear']).toContain(d.bodyComp.signal)
+    expect(d.guidelines.cardioMinutesShort).toBe(85)
+    expect(d.consistency.sessions4w).toBe(5)
+    expect(d.monthlyLens).toBe(false)
+    const md = digestMarkdown(d)
+    expect(md).toContain('## Benchmarks')
+    expect(md).toContain('## Balance and longevity markers')
+    expect(md).toContain('Squat: best ever')
+    expect(md).toContain('band 45 to 49')
+  })
+
+  test('without a birth year the digest still runs and says so', () => {
+    const d = weeklyDigest(dataset(), '2026-09-13')
+    expect(d.age).toBeUndefined()
+    expect(d.benchmarks.find((b) => b.key === 'squat')!.level).toBeUndefined()
+    expect(digestMarkdown(d)).toContain('add a birth year in Settings')
+  })
+})
