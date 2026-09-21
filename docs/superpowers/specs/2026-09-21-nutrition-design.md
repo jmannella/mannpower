@@ -75,7 +75,7 @@ Meal totals are always derived by summing items (`src/nutrition/totals.ts`), nev
 
 `Settings` (phone only, never exported) gains `anthropicKey?` and `aiModel` (default `claude-opus-5`). `exportDataset` builds the synced settings field by field today, so the key cannot leak by accident; a test asserts it.
 
-Dexie moves to version 2 adding `meals: 'id, date'` and `savedMeals: 'id, lastUsedAt'`. `exportDataset`, `importDataset` and the repo layer are extended to match. Repo functions: `addMeal`, `updateMeal`, `deleteMeal`, `mealsForDate`, `saveMealAsFavourite`, `logSavedMeal`, `renameSavedMeal`, `deleteSavedMeal`. Each stamps meta and emits a data change so auto sync runs, as the workout functions do.
+Dexie moves to version 2 adding `meals: 'id, date'` and `savedMeals: 'id, lastUsedAt'`. `exportDataset`, `importDataset` and the repo layer are extended to match. Repo functions: `listMeals`, `mealsForDate`, `saveMeal` (insert or update), `deleteMeal`, `listSavedMeals`, `saveSavedMeal` (create or rename), `deleteSavedMeal`, `logSavedMeal`. Each stamps meta and emits a data change so auto sync runs, as the workout functions do.
 
 Photos are never stored. A photo is downscaled on the phone to a 1024 px long edge JPEG, sent with the request, and dropped.
 
@@ -102,12 +102,12 @@ The report script shares `GitHubContents`, so it gets the fix for free.
 Three modes as chips across the top. The sheet remembers the last mode used.
 
 1. **Describe.** A text box (the phone keyboard's mic handles dictation), an optional photo button (`<input type="file" accept="image/*" capture="environment">`), and Estimate. The result opens the confirm view.
-2. **Saved.** Search box, then saved meals ordered by most recently used, then recent distinct meals from the last 14 days. One tap logs the meal at the current time; a long press or edit icon opens the confirm view first.
+2. **Saved.** Search box, then saved meals ordered by most recently used, then recent distinct meals from the last 14 days. One tap logs the meal at the current time; an Adjust button opens the confirm view first.
 3. **Quick add.** Calories, protein, optional name. Saves one item of kind `food`.
 
 ### Confirm view
 
-Shows the item list from the estimate with every number editable through the existing `NumberField`, a portion multiplier (0.5, 1, 1.5, 2) that scales all items, the time, totals at the bottom, a low confidence warning when Claude reports one along with its one line reason, and Save. A "Save as saved meal" toggle sits beside Save.
+Shows the item list from the estimate with calories and protein editable per item through the existing `NumberField` (carbs, fat and fibre ride along and scale with the portion), a portion multiplier (0.5, 1, 1.5, 2) that scales all items, the time, totals at the bottom, a low confidence warning when Claude reports one along with its one line reason, and Save. A "Save as saved meal" toggle sits beside Save.
 
 ### Today card
 
@@ -146,7 +146,7 @@ Expected cost: about 2 to 3 cents per AI estimated meal on Opus 5. Saved meals a
 
 ## Targets (`src/nutrition/targets.ts`, pure functions)
 
-**Complete day.** A date is complete when its logged calories are at least half of the formula maintenance (below) and none of its meals has `needsEstimate`. Only complete days count in averages and in the maintenance maths. This rule uses the formula value, not the measured one, so it is never circular. When no formula value exists (a Settings field is missing), the threshold is a flat 1000 calories.
+**Complete day.** A date is complete when its logged calories are at least half of that date's own formula maintenance (below) and none of its meals has `needsEstimate`. Only complete days count in averages and in the maintenance maths. This rule uses the formula value, not the measured one, so it is never circular. When no formula value exists (a Settings field is missing), the threshold is a flat 1000 calories.
 
 **Formula maintenance.** Mifflin St Jeor from sex, age (from `birthYear`), `heightInches` and the 7 day average body weight, times an activity factor from the last 14 days of data: average steps under 5000 gives 1.3, 5000 to 7499 gives 1.4, 7500 to 9999 gives 1.5, 10000 and over gives 1.6, plus 0.05 when there were at least 5 strength sessions in those 14 days. With no steps logged the factor is 1.4. If sex, height, birth year or weight is missing, there is no formula value and the app asks for the missing Settings field.
 
