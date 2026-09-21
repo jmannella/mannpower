@@ -102,7 +102,7 @@ export default function Settings() {
   return (
     <div className="screen">
       <Header title="Settings" />
-      {message && <div className="banner" onClick={() => setMessage(null)}>{message}</div>}
+      {message && <div className="banner toast" role="status" onClick={() => setMessage(null)}>{message}</div>}
       {settings.syncStatus === 'error' && settings.lastSyncError?.includes('token') && <div className="banner banner-error">GitHub rejected the token. Check it below.</div>}
 
       <Section title="GitHub sync">

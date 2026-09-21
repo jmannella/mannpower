@@ -108,6 +108,8 @@ textarea.input { padding: 12px 14px; min-height: 96px; resize: vertical; }
 
 .banner { padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--text); font-size: 14px; }
 .banner-error { background: rgba(248, 113, 113, 0.16); }
+/* Results of a button press stay on screen above the tab bar, however far down the page the button is. */
+.toast { position: fixed; left: 16px; right: 16px; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 41; max-width: 608px; margin: 0 auto; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45); }
 
 .sheet-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: flex-end; z-index: 50; }
 .sheet { background: var(--surface); border-radius: 20px 20px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); width: 100%; max-width: 640px; margin: 0 auto; max-height: 88dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }

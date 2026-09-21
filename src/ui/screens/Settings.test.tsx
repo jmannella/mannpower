@@ -75,7 +75,10 @@ describe('Settings', () => {
     await waitFor(async () => expect(await getSettings()).toMatchObject({ anthropicKey: 'sk-test-key', aiModel: 'claude-haiku-4-5' }))
     expect(JSON.stringify(await exportDataset())).not.toContain('sk-test-key')
     await userEvent.click(screen.getByRole('button', { name: 'Test key' }))
-    expect(await screen.findByText('The key works.')).toBeInTheDocument()
+    // The message is a status toast pinned to the viewport, so it is seen no matter how far down the page the button sits.
+    const toast = await screen.findByRole('status')
+    expect(toast).toHaveTextContent('The key works.')
+    expect(toast.className).toContain('toast')
     vi.mocked(estimateMeal).mockResolvedValueOnce({ ok: false, reason: 'auth', message: 'Claude rejected the API key. Check it in Settings.' })
     await userEvent.click(screen.getByRole('button', { name: 'Test key' }))
     expect(await screen.findByText(/rejected the API key/)).toBeInTheDocument()
