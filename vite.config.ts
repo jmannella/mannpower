@@ -38,5 +38,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['src/test/setup.ts'],
+    // Background sessions check out worktrees under .claude; their copies of the tests are not this tree's tests.
+    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.superpowers/**'],
   },
 })
