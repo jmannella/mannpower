@@ -3,12 +3,14 @@ import { Header } from '../components/Header'
 import { NumberField } from '../components/NumberField'
 import { Chip } from '../components/Chip'
 import { Section } from '../components/Section'
-import { useExercises, useSettings } from '../hooks'
+import { useDays, useExercises, useMeals, useSettings, useWorkouts } from '../hooks'
 import { deleteExercise, saveExercise, saveSettings } from '../../data/repo'
 import { exportDataset, importDataset, validateDataset } from '../../data/snapshot'
 import { runSync } from '../../sync/runSync'
 import { todayISO } from '../../domain/dates'
-import { MUSCLE_LABELS, type SyncStatus } from '../../domain/types'
+import { targetsFor } from '../../nutrition/targets'
+import { estimateMeal } from '../../nutrition/estimate'
+import { AI_MODELS, MUSCLE_LABELS, type AiModel, type SyncStatus } from '../../domain/types'
 
 const STATUS_TEXT: Record<SyncStatus, string> = {
   not_set_up: 'Not set up. Add a token to back up to GitHub.',
@@ -20,15 +22,24 @@ const STATUS_TEXT: Record<SyncStatus, string> = {
 export default function Settings() {
   const settings = useSettings()
   const exercises = useExercises().filter((e) => e.custom)
+  const meals = useMeals()
+  const days = useDays()
+  const workouts = useWorkouts()
   const [token, setToken] = useState<string | null>(null)
   const [repo, setRepo] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [aiKey, setAiKey] = useState<string | null>(null)
+  const [aiModel, setAiModel] = useState<AiModel | null>(null)
+  const [testing, setTesting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   if (!settings) return <div className="screen"><Header title="Settings" /></div>
   const tokenValue = token ?? settings.githubToken ?? ''
   const repoValue = repo ?? settings.dataRepo
+  const aiKeyValue = aiKey ?? settings.anthropicKey ?? ''
+  const aiModelValue = aiModel ?? settings.aiModel
+  const targets = targetsFor({ meals, days, workouts, settings }, todayISO())
 
   const saveSync = async () => {
     const trimmedToken = tokenValue.trim()
@@ -63,10 +74,21 @@ export default function Settings() {
     try { parsed = JSON.parse(await file.text()) } catch { setMessage('That file is not valid JSON.'); return }
     const v = validateDataset(parsed)
     if (!v.ok) { setMessage(`Backup rejected: ${v.errors[0]}`); return }
-    const ok = confirm(`Replace everything on this phone with ${v.dataset.workouts.length} workouts, ${v.dataset.days.length} days and ${v.dataset.pain.length} pain entries from the backup?`)
+    const ok = confirm(`Replace everything on this phone with ${v.dataset.workouts.length} workouts, ${v.dataset.days.length} days, ${v.dataset.meals.length} meals and ${v.dataset.pain.length} pain entries from the backup?`)
     if (!ok) return
     await importDataset(v.dataset, { stampNow: true })
     setMessage('Backup restored.')
+  }
+  const saveAi = async () => {
+    await saveSettings({ anthropicKey: aiKeyValue.trim() || undefined, aiModel: aiModelValue })
+    setAiKey(null); setAiModel(null)
+    setMessage('Saved.')
+  }
+  const testKey = async () => {
+    setTesting(true); setMessage(null)
+    const r = await estimateMeal({ text: 'one medium banana' })
+    setTesting(false)
+    setMessage(r.ok ? 'The key works.' : r.message)
   }
   const rename = async (id: string, name: string) => {
     const next = prompt('New name', name)?.trim()
@@ -115,7 +137,53 @@ export default function Settings() {
               else setMessage('Birth year should be a four digit year, for example 1979.')
             }} allowDecimal={false} />
             <NumberField label="Daily step goal" value={settings.dailyStepGoal} onCommit={(v) => saveSettings({ dailyStepGoal: v })} allowDecimal={false} />
+            <NumberField label="Height" value={settings.heightInches} suffix="in" onCommit={(v) => {
+              const ok = v === undefined || (v >= 36 && v <= 96)
+              if (ok) void saveSettings({ heightInches: v })
+              else setMessage('Height should be in inches, for example 70 for 5 foot 10.')
+            }} />
           </div>
+          <span className="field-label">Sex (for the calorie formula)</span>
+          <div className="chips">
+            <Chip on={settings.sex === 'male'} onClick={() => saveSettings({ sex: 'male' })}>Male</Chip>
+            <Chip on={settings.sex === 'female'} onClick={() => saveSettings({ sex: 'female' })}>Female</Chip>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Food targets">
+        <div className="card">
+          <div>
+            {targets.maintenance === undefined
+              ? `No maintenance estimate yet. Still needed: ${targets.missing.join(', ') || 'more logged days'}.`
+              : `Maintenance about ${Math.round(targets.maintenance / 10) * 10} kcal (${targets.source === 'measured' ? 'measured from your logged food and weight' : 'formula, until 14 full days are logged'}).`}
+          </div>
+          {targets.calories !== undefined && targets.protein !== undefined && (
+            <div><strong>Target {targets.calories} kcal and {targets.protein} g protein a day.</strong></div>
+          )}
+          <div className="grid-2">
+            <NumberField label="Calorie target override" value={settings.calorieTargetOverride} onCommit={(v) => saveSettings({ calorieTargetOverride: v || undefined })} allowDecimal={false} suffix="kcal" />
+            <NumberField label="Protein target override" value={settings.proteinTargetOverride} onCommit={(v) => saveSettings({ proteinTargetOverride: v || undefined })} allowDecimal={false} suffix="g" />
+          </div>
+          <div className="muted">Leave the overrides blank to let the app work the targets out. The number updates once a week, on Monday.</div>
+        </div>
+      </Section>
+
+      <Section title="AI meal estimates">
+        <div className="card">
+          <label className="field"><span className="field-label">Anthropic API key</span>
+            <input className="input" type="password" aria-label="Anthropic API key" value={aiKeyValue} onChange={(e) => setAiKey(e.target.value)} placeholder="sk-ant-..." autoComplete="off" />
+          </label>
+          <label className="field"><span className="field-label">Model</span>
+            <select className="input" aria-label="Model" value={aiModelValue} onChange={(e) => setAiModel(e.target.value as AiModel)}>
+              {AI_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label>
+          <div className="grid-2">
+            <button type="button" className="btn" onClick={saveAi}>Save AI settings</button>
+            <button type="button" className="btn btn-primary" disabled={testing || !settings.anthropicKey} onClick={testKey}>{testing ? 'Testing' : 'Test key'}</button>
+          </div>
+          <div className="muted">Create a key at console.anthropic.com. It stays on this phone and is never synced. Each estimated meal costs a few cents; saved meals and quick add are free.</div>
         </div>
       </Section>
 
