@@ -23,6 +23,7 @@ function dataset(): Dataset {
       mkPain('2026-09-07', 'lower_back', 3, { workoutId: 'a', exerciseId: 'back-squat' }),
       mkPain('2026-08-31', 'lower_back', 2, { workoutId: 'p1' }),
     ],
+    meals: [], savedMeals: [],
     settings: { defaultWithTrainer: true, customCardioTypes: [], dailyStepGoal: 10000, targetBodyWeight: 220 },
   }
 }

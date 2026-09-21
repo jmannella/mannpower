@@ -17,7 +17,7 @@ export async function exportDataset(): Promise<Dataset> {
     defaultWithTrainer: settings.defaultWithTrainer,
     customCardioTypes: settings.customCardioTypes,
   }
-  return { meta: { schemaVersion: 1, updatedAt: meta.updatedAt }, exercises, workouts, days, pain, settings: synced }
+  return { meta: { schemaVersion: 1, updatedAt: meta.updatedAt }, exercises, workouts, days, pain, meals: [], savedMeals: [], settings: synced }
 }
 
 /**

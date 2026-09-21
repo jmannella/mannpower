@@ -42,7 +42,7 @@ describe('snapshot', () => {
       meta: { schemaVersion: 1, updatedAt: '2026-09-08T00:00:00.000Z' },
       exercises: [{ id: 'c9', name: 'Imported', primary: 'back', secondary: [], custom: true }],
       workouts: [{ id: 'new', date: '2026-09-08', withTrainer: false, entries: [], createdAt: '', updatedAt: '' }],
-      days: [], pain: [],
+      days: [], pain: [], meals: [], savedMeals: [],
       settings: { defaultWithTrainer: false, customCardioTypes: ['Hike'] },
     })
     expect((await listWorkouts()).map((w) => w.id)).toEqual(['new'])
@@ -59,7 +59,7 @@ describe('snapshot', () => {
     const off = onDataChange(() => seen.push(1))
     await importDataset({
       meta: { schemaVersion: 1, updatedAt: '2020-01-01T00:00:00.000Z' },
-      exercises: [], workouts: [], days: [], pain: [],
+      exercises: [], workouts: [], days: [], pain: [], meals: [], savedMeals: [],
       settings: { defaultWithTrainer: true, customCardioTypes: [] },
     }, { stampNow: true })
     off()

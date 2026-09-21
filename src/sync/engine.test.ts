@@ -3,7 +3,7 @@ import { SyncConflictError, type GitHubContents, type RemoteFile } from './githu
 import { decide, syncOnce, type SyncDeps } from './engine'
 
 function ds(updatedAt: string, tag = ''): Dataset {
-  return { meta: { schemaVersion: 1, updatedAt }, exercises: [], workouts: [], days: [], pain: [], settings: { defaultWithTrainer: true, customCardioTypes: [tag] } }
+  return { meta: { schemaVersion: 1, updatedAt }, exercises: [], workouts: [], days: [], pain: [], meals: [], savedMeals: [], settings: { defaultWithTrainer: true, customCardioTypes: [tag] } }
 }
 
 function fakeClient(remote: RemoteFile | null, putImpl?: (content: string, sha?: string) => Promise<string>) {
