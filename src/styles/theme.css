@@ -114,7 +114,7 @@ textarea.input { padding: 12px 14px; min-height: 80px; resize: vertical; }
 .sheet-title { font-family: var(--font-display); font-size: 26px; }
 
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); z-index: 40; }
-.tab { flex: 1; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.tab { flex: 1; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .tab svg { width: 24px; height: 24px; }
 .tab-on { color: var(--accent); }
 
