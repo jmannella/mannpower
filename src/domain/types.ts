@@ -83,6 +83,56 @@ export interface PainEntry {
   createdAt: string
 }
 
+export type FoodKind = 'food' | 'drink' | 'alcohol'
+
+export interface FoodItem {
+  name: string
+  /** Free text such as "2 large" or "1 cup". */
+  amount?: string
+  kind: FoodKind
+  calories: number
+  protein: number
+  carbs?: number
+  fat?: number
+  fibre?: number
+}
+
+export type MealSource = 'ai' | 'saved' | 'quick'
+export type Confidence = 'low' | 'medium' | 'high'
+
+export interface MealEntry {
+  id: string
+  date: string
+  /** HH:MM, 24 hour, local. */
+  time: string
+  description: string
+  /** Totals are always summed from items, never stored. Empty only while needsEstimate is set. */
+  items: FoodItem[]
+  source: MealSource
+  confidence?: Confidence
+  /** Set when Describe could not reach Claude. Left out of every average until resolved. */
+  needsEstimate?: boolean
+  savedMealId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SavedMeal {
+  id: string
+  name: string
+  items: FoodItem[]
+  useCount: number
+  lastUsedAt: string
+}
+
+export type Sex = 'male' | 'female'
+export type AiModel = 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5'
+export const AI_MODELS: { id: AiModel; label: string }[] = [
+  { id: 'claude-opus-5', label: 'Opus 5 (best estimates)' },
+  { id: 'claude-sonnet-5', label: 'Sonnet 5' },
+  { id: 'claude-haiku-4-5', label: 'Haiku 4.5 (cheapest)' },
+]
+
 export type SyncStatus = 'not_set_up' | 'synced' | 'pending' | 'error'
 
 /** Settings that travel in data.json. */
@@ -93,12 +143,21 @@ export interface SyncedSettings {
   birthYear?: number
   defaultWithTrainer: boolean
   customCardioTypes: string[]
+  /** Used with sex, birth year and body weight for the formula maintenance estimate. */
+  heightInches?: number
+  sex?: Sex
+  /** When set, these replace the computed targets. */
+  calorieTargetOverride?: number
+  proteinTargetOverride?: number
 }
 
 /** Full settings row stored on the phone. */
 export interface Settings extends SyncedSettings {
   id: 'settings'
   githubToken?: string
+  /** Anthropic API key for meal estimates. Phone only, never exported. */
+  anthropicKey?: string
+  aiModel: AiModel
   dataRepo: string
   lastSyncedAt?: string
   lastSyncSha?: string
@@ -119,6 +178,8 @@ export interface Dataset {
   workouts: Workout[]
   days: DayRecord[]
   pain: PainEntry[]
+  meals: MealEntry[]
+  savedMeals: SavedMeal[]
   settings: SyncedSettings
 }
 
@@ -128,4 +189,5 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultWithTrainer: true,
   customCardioTypes: [],
   syncStatus: 'not_set_up',
+  aiModel: 'claude-opus-5',
 }

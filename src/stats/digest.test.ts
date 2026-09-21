@@ -1,5 +1,6 @@
 import type { Dataset } from '../domain/types'
-import { mkDay, mkEntry, mkPain, mkWorkout } from './testData'
+import { eachDay } from '../domain/dates'
+import { mkDay, mkEntry, mkMeal, mkPain, mkWorkout } from './testData'
 import { digestMarkdown, weeklyDigest } from './digest'
 
 function dataset(): Dataset {
@@ -23,6 +24,7 @@ function dataset(): Dataset {
       mkPain('2026-09-07', 'lower_back', 3, { workoutId: 'a', exerciseId: 'back-squat' }),
       mkPain('2026-08-31', 'lower_back', 2, { workoutId: 'p1' }),
     ],
+    meals: [], savedMeals: [],
     settings: { defaultWithTrainer: true, customCardioTypes: [], dailyStepGoal: 10000, targetBodyWeight: 220 },
   }
 }
@@ -87,6 +89,32 @@ describe('weeklyDigest', () => {
     expect(empty.bodyWeight.band).toBe('unknown')
     expect(empty.streakWeeks).toBe(0)
     expect(digestMarkdown(empty)).toContain('## Summary')
+  })
+
+  test('with no meals the nutrition section says logging was too thin', () => {
+    const d = weeklyDigest(dataset(), '2026-09-13')
+    expect(d.nutrition).toMatchObject({ mealsLogged: 0, completeDays: 0, enoughData: false })
+    const md = digestMarkdown(d)
+    expect(md).toContain('## Nutrition')
+    expect(md).toContain('- Food logging too thin to read: 0 complete days of 7, 0 meals logged, 0 waiting for an estimate')
+  })
+
+  test('with a logged week the nutrition section carries the reconciliation and splits', () => {
+    const ds = dataset()
+    ds.settings = { ...ds.settings, sex: 'male', heightInches: 70, birthYear: 1979, proteinTargetOverride: 140 }
+    ds.meals = eachDay('2026-09-07', '2026-09-13').map((date, i) => mkMeal(date, i > 4 ? 3000 : 2000, i > 4 ? 100 : 150, i === 5 ? { time: '21:00' } : {}))
+    const d = weeklyDigest(ds, '2026-09-13')
+    expect(d.nutrition).toMatchObject({ completeDays: 7, enoughData: true, proteinDaysHit: 5, weekdayAvgCalories: 2000, weekendAvgCalories: 3000 })
+    const md = digestMarkdown(d)
+    expect(md).toContain('- Complete days logged: 7 of 7')
+    expect(md).toMatch(/- Calories: avg 2286 a day against a target of \d+/)
+    expect(md).toContain('- Protein: avg 136 g against a target of 140 g, target hit on 5 of 7 complete days')
+    expect(md).toMatch(/- Maintenance: about \d+ kcal \(formula\)/)
+    expect(md).toContain('- Maintenance: about 3101 kcal (formula). It switches to measured after 14 complete days in 28. Avg daily deficit 815 kcal')
+    expect(md).toContain('- Weekday avg 2000 kcal vs weekend avg 3000 kcal')
+    expect(md).toContain('- Top calorie items: Meal 16000 kcal (7)')
+    expect(md).toContain('after 8 pm 18.8%')
+    expect(md).toMatch(/Body composition signal: .*protein target hit on 5 of 7 complete days/)
   })
 })
 

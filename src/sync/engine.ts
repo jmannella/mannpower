@@ -22,7 +22,7 @@ export interface SyncDeps {
 }
 
 async function pushWithRetry(deps: SyncDeps, local: Dataset, sha: string | undefined): Promise<string> {
-  const json = JSON.stringify(local, null, 2)
+  const json = JSON.stringify(local)
   try {
     return await deps.client.put(json, sha)
   } catch (err) {
@@ -52,7 +52,7 @@ export async function syncOnce(deps: SyncDeps): Promise<SyncDecision> {
     // A device that has never synced (no stored sha) must not push and overwrite an existing
     // remote backup just because its clock-stamped meta.updatedAt happens to look newer.
     if (decision === 'push' && remoteDs && (await deps.getSha()) === undefined
-      && remoteDs.workouts.length + remoteDs.days.length + remoteDs.pain.length > 0) {
+      && remoteDs.workouts.length + remoteDs.days.length + remoteDs.pain.length + remoteDs.meals.length + remoteDs.savedMeals.length > 0) {
       decision = 'pull'
     }
     if (decision === 'pull' && remoteDs && remote) {

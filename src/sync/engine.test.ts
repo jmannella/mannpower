@@ -3,7 +3,7 @@ import { SyncConflictError, type GitHubContents, type RemoteFile } from './githu
 import { decide, syncOnce, type SyncDeps } from './engine'
 
 function ds(updatedAt: string, tag = ''): Dataset {
-  return { meta: { schemaVersion: 1, updatedAt }, exercises: [], workouts: [], days: [], pain: [], settings: { defaultWithTrainer: true, customCardioTypes: [tag] } }
+  return { meta: { schemaVersion: 1, updatedAt }, exercises: [], workouts: [], days: [], pain: [], meals: [], savedMeals: [], settings: { defaultWithTrainer: true, customCardioTypes: [tag] } }
 }
 
 function fakeClient(remote: RemoteFile | null, putImpl?: (content: string, sha?: string) => Promise<string>) {
@@ -49,6 +49,7 @@ describe('syncOnce', () => {
     expect(puts[0].sha).toBeUndefined()
     expect(state.sha).toBe('sha-new')
     expect(state.status.at(-1)).toEqual(['synced', undefined])
+    expect(puts[0].content).not.toContain('\n')
   })
 
   test('pulls when remote is newer and keeps the remote sha', async () => {
@@ -92,6 +93,18 @@ describe('syncOnce', () => {
     expect(await syncOnce(d)).toBe('pull')
     expect(puts).toHaveLength(0)
     expect(state.replaced?.workouts).toHaveLength(1)
+    expect(state.sha).toBe('r1')
+  })
+
+  test('never-synced device pulls instead of overwriting a remote backup that holds only saved meals', async () => {
+    const remote = ds('2026-09-08T09:00:00.000Z', 'remote')
+    remote.savedMeals = [{ id: 'sm1', name: 'Eggs and toast', items: [], useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z' }]
+    const { client, puts } = fakeClient({ content: JSON.stringify(remote), sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)
+    // getSha defaults to undefined in `deps`, simulating an install that has never synced.
+    expect(await syncOnce(d)).toBe('pull')
+    expect(puts).toHaveLength(0)
+    expect(state.replaced?.savedMeals).toHaveLength(1)
     expect(state.sha).toBe('r1')
   })
 

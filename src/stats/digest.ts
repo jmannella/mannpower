@@ -12,6 +12,7 @@ import { cardioSummary, stepsSummary, type CardioSummary, type StepsSummary } fr
 import { trainerSplit, type TrainerSplit } from './trainer'
 import { painPatterns, type AreaPattern } from './pain'
 import { bodyWeightAvg7 } from './bodyweight'
+import { nutritionWeek, type NutritionWeek } from './nutrition'
 import {
   BODY_COMP_LABELS, ageOn, balanceSummary, bodyCompSignal, consistency, daysSinceGroup, guidelineCheck, isLastSundayOfMonth,
   mainLiftBenchmarks, strengthChange4w, type BalanceSummary, type BodyCompSignal, type LiftBenchmark,
@@ -51,6 +52,8 @@ export interface Digest {
   consistency: { sessions4w: number; sessions12w: number; weeksWithTwoPlus4w: number }
   /** True on the last Sunday of the month, when the email adds the long-game section. */
   monthlyLens: boolean
+  /** Food logged this week: intake against targets, the intake versus scale reconciliation, and where the calories came from. */
+  nutrition: NutritionWeek
 }
 
 export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
@@ -126,11 +129,13 @@ export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
     guidelines: guidelineCheck(cardio.minutes, stepsWeek.mean),
     consistency: consistency(workouts, end),
     monthlyLens: isLastSundayOfMonth(end),
+    nutrition: nutritionWeek(ds, start, end, isLastSundayOfMonth(end)),
   }
 }
 
 const n = (x: number | undefined, digits = 0) => (x === undefined ? 'n/a' : x.toFixed(digits))
 const pct = (x: number | undefined) => (x === undefined ? 'n/a' : `${x > 0 ? '+' : ''}${x.toFixed(1)}%`)
+const share = (x: number | undefined) => (x === undefined ? 'n/a' : `${x.toFixed(1)}%`)
 
 export function digestMarkdown(d: Digest): string {
   const lines: string[] = []
@@ -164,6 +169,27 @@ export function digestMarkdown(d: Digest): string {
   lines.push(`- Step goal days: ${d.steps.daysAtGoal} of ${d.steps.daysLogged} logged`)
   lines.push(`- Cardio sessions: ${d.cardio.sessions}`, '')
 
+  const food = d.nutrition
+  lines.push('## Nutrition')
+  if (!food.enoughData) {
+    lines.push(`- Food logging too thin to read: ${food.completeDays} complete days of 7, ${food.mealsLogged} meals logged, ${food.pendingMeals} waiting for an estimate`)
+  } else {
+    lines.push(`- Complete days logged: ${food.completeDays} of 7 (${food.mealsLogged} meals, ${food.pendingMeals} waiting for an estimate). Averages use complete days only`)
+    lines.push(`- Calories: avg ${n(food.avgCalories)} a day against a target of ${n(food.calorieTarget)}`)
+    lines.push(`- Protein: avg ${n(food.avgProtein)} g against a target of ${n(food.proteinTarget)} g, target hit on ${food.proteinDaysHit ?? 'n/a'} of ${food.completeDays} complete days; fibre avg ${n(food.avgFibre)} g`)
+    const switchesNote = food.maintenanceSource === 'formula' ? ' It switches to measured after 14 complete days in 28.' : ''
+    lines.push(`- Maintenance: about ${n(food.maintenance)} kcal (${food.maintenanceSource}).${switchesNote} Avg daily deficit ${n(food.avgDeficit)} kcal`)
+    lines.push(`- Reconciliation: intake predicts ${n(food.predictedChangeLbs, 1)} lb this week, the 7 day average weight moved ${n(food.actualChangeLbs, 1)} lb`)
+    lines.push(`- Weekday avg ${n(food.weekdayAvgCalories)} kcal vs weekend avg ${n(food.weekendAvgCalories)} kcal`)
+    const grp = (g?: { days: number; calories: number; protein: number }) => (g ? `${n(g.calories)} kcal and ${n(g.protein)} g protein over ${g.days} days` : 'n/a')
+    lines.push(`- Training days: ${grp(food.trainingDay)}; rest days: ${grp(food.restDay)}`)
+    lines.push(`- Top calorie items: ${food.topItems.map((t) => `${t.name} ${n(t.calories)} kcal (${t.count})`).join(', ') || 'none'}`)
+    lines.push(`- Calorie shares: non alcoholic drinks ${share(food.drinkSharePct)}, alcohol ${share(food.alcoholSharePct)}, after 8 pm ${share(food.lateSharePct)}`)
+    lines.push(`- Day to day spread: ${n(food.calorieSpread)} kcal standard deviation`)
+  }
+  if (food.month) lines.push(`- Month: ${food.month.completeDays} complete days in 28; maintenance ${n(food.month.maintenanceStart)} four weeks ago, ${n(food.month.maintenanceEnd)} now`)
+  lines.push('')
+
   lines.push('## Benchmarks')
   lines.push(`- Age ${d.age ?? 'unknown'} (band ${d.ageBand ?? 'not set, add a birth year in Settings'}). Levels are a rough yardstick from community strength standards (body weight multiples at an estimated 1RM) scaled down for the age band, not a test or a medical measure; plain variants only, rows are the loosest of the five`)
   for (const b of d.benchmarks) {
@@ -183,7 +209,8 @@ export function digestMarkdown(d: Digest): string {
   lines.push(`- Single leg or single arm sets, four weeks: ${f.unilateralSets} of ${f.totalSets} (balance and fall prevention)`)
   lines.push(`- Loaded carry sets, four weeks: ${f.carrySets} (grip strength tracks with healthy ageing)`)
   lines.push(`- Muscle groups over 10 days untrained: ${d.neglectedGroups.map((g) => `${MUSCLE_LABELS[g]} (${d.daysSinceGroup[g]} days)`).join(', ') || 'none'}`)
-  lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)})`)
+  const proteinFact = d.nutrition.enoughData && d.nutrition.proteinDaysHit !== undefined ? `, protein target hit on ${d.nutrition.proteinDaysHit} of ${d.nutrition.completeDays} complete days` : ''
+  lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)}${proteinFact})`)
   const stepsWord = d.guidelines.stepsMeetsGuideline === undefined ? 'no steps logged' : d.guidelines.stepsMeetsGuideline ? 'steps average meets the 8000 a day marker' : 'steps average is below the 8000 a day marker'
   lines.push(`- Guidelines: cardio short of 150 min by ${d.guidelines.cardioMinutesShort} min; ${stepsWord}`)
   lines.push(`- Consistency: ${d.consistency.sessions4w} sessions in 4 weeks, ${d.consistency.sessions12w} in 12, ${d.consistency.weeksWithTwoPlus4w} of the last 4 weeks had 2 or more`)

@@ -22,6 +22,10 @@ export function nowISO(): string {
   return new Date().toISOString()
 }
 
+export function nowTime(now: Date = new Date()): string {
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
+
 export function addDays(date: string, n: number): string {
   const d = parseISO(date)
   d.setDate(d.getDate() + n)

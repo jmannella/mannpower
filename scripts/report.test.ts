@@ -22,6 +22,9 @@ describe('report script', () => {
     expect(r.out).toContain('PR Barbell Bench Press')
     expect(r.out).toContain('Lower back')
     expect(r.out).toContain('```json')
+    expect(r.out).toContain('## Nutrition')
+    expect(r.out).toContain('- Complete days logged: 7 of 7')
+    expect(r.out).toContain('Double double')
   })
 
   test('fails clearly without a token', () => {

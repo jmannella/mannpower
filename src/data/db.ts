@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { DayRecord, Exercise, Meta, PainEntry, Settings, Workout } from '../domain/types'
+import type { DayRecord, Exercise, MealEntry, Meta, PainEntry, SavedMeal, Settings, Workout } from '../domain/types'
 
 export class MannpowerDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>
@@ -8,6 +8,8 @@ export class MannpowerDB extends Dexie {
   pain!: EntityTable<PainEntry, 'id'>
   settings!: EntityTable<Settings, 'id'>
   meta!: EntityTable<Meta, 'id'>
+  meals!: EntityTable<MealEntry, 'id'>
+  savedMeals!: EntityTable<SavedMeal, 'id'>
 
   constructor(name = 'mannpower') {
     super(name)
@@ -18,6 +20,10 @@ export class MannpowerDB extends Dexie {
       pain: 'id, date, workoutId, exerciseId',
       settings: 'id',
       meta: 'id',
+    })
+    this.version(2).stores({
+      meals: 'id, date',
+      savedMeals: 'id, lastUsedAt',
     })
   }
 }

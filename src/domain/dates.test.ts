@@ -1,6 +1,6 @@
 import {
   addDays, daysBetween, eachDay, formatShort, formatWeekLabel, inRange,
-  parseISO, toISO, todayISO, weekEnd, weekStart,
+  nowTime, parseISO, toISO, todayISO, weekEnd, weekStart,
 } from './dates'
 
 describe('dates', () => {
@@ -45,5 +45,10 @@ describe('dates', () => {
   test('formatting', () => {
     expect(formatShort('2026-09-08')).toBe('Tue Sep 8')
     expect(formatWeekLabel('2026-09-07')).toBe('Sep 7')
+  })
+
+  test('nowTime is zero padded local HH:MM', () => {
+    expect(nowTime(new Date(2026, 8, 21, 7, 5))).toBe('07:05')
+    expect(nowTime(new Date(2026, 8, 21, 20, 30))).toBe('20:30')
   })
 })

@@ -13,6 +13,7 @@
     "icons": "node scripts/icons.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
     "dexie": "^4.4.5",
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.2.8",

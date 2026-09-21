@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Bar, BarChart, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, Cell, ComposedChart, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Header } from '../components/Header'
 import { Chip } from '../components/Chip'
 import { Section } from '../components/Section'
 import { ChartTip } from '../components/ChartTip'
-import { useDays, useExercises, usePain, useSettings, useWorkouts } from '../hooks'
+import { BigNumber } from '../components/BigNumber'
+import { useDays, useExercises, useMeals, usePain, useSettings, useWorkouts } from '../hooks'
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type BodyArea } from '../../domain/types'
 import { addDays, daysBetween, formatWeekLabel, todayISO, weekStart } from '../../domain/dates'
 import { bodyWeightAvg7, bodyWeightSeries, relativeStrength } from '../../stats/bodyweight'
@@ -15,6 +16,8 @@ import { exerciseHistory } from '../../stats/prs'
 import { normalizeVariation } from '../../library/variations'
 import { trainerSplit } from '../../stats/trainer'
 import { bodyAreaLabel } from '../../library/bodyAreas'
+import { nutritionSeries, recentDeficit } from '../../stats/nutrition'
+import { targetsFor } from '../../nutrition/targets'
 
 type Range = '4w' | '12w' | 'all'
 const GROUP_COLORS: Record<string, string> = {
@@ -29,11 +32,12 @@ export default function Trends() {
   const pain = usePain()
   const exercises = useExercises()
   const settings = useSettings()
+  const meals = useMeals()
   const [range, setRange] = useState<Range>('12w')
   const exMap = useMemo(() => exerciseMap(exercises), [exercises])
 
   const today = todayISO()
-  const earliest = [...workouts.map((w) => w.date), ...days.map((d) => d.date), ...pain.map((p) => p.date)].sort()[0] ?? today
+  const earliest = [...workouts.map((w) => w.date), ...days.map((d) => d.date), ...pain.map((p) => p.date), ...meals.map((m) => m.date)].sort()[0] ?? today
   const from = range === '4w' ? addDays(today, -27) : range === '12w' ? addDays(today, -83) : earliest
   const fromWeek = weekStart(from)
   const toWeek = weekStart(today)
@@ -85,6 +89,11 @@ export default function Trends() {
   const painAreas = Array.from(new Set(pain.filter((p) => p.date >= from).map((p) => p.area))) as BodyArea[]
   const span = Math.max(1, daysBetween(from, today))
 
+  const nutritionInput = settings ? { meals, days, workouts, settings } : undefined
+  const foodRows = useMemo(() => (nutritionInput ? nutritionSeries(nutritionInput, from, today) : []), [meals, days, workouts, settings, from, today])
+  const foodTargets = useMemo(() => (nutritionInput ? targetsFor(nutritionInput, today) : undefined), [meals, days, workouts, settings, from, today])
+  const deficit = useMemo(() => (nutritionInput ? recentDeficit(nutritionInput, today) : undefined), [meals, days, workouts, settings, from, today])
+
   return (
     <div className="screen">
       <Header title="Trends" />
@@ -108,6 +117,50 @@ export default function Trends() {
           </ResponsiveContainer>
         </div>
       </Section>
+
+      {meals.length > 0 && (
+        <>
+          <Section title="Calories">
+            <div className="card">
+              <div className="grid-3">
+                <BigNumber value={foodTargets?.maintenance === undefined ? '–' : Math.round(foodTargets.maintenance / 10) * 10} label={foodTargets?.source === 'measured' ? 'Maintenance, measured' : 'Maintenance, formula'} />
+                <BigNumber value={foodTargets?.calories ?? '–'} label="Target kcal" tone="accent" />
+                <BigNumber value={deficit === undefined ? '–' : Math.round(deficit)} label="Avg deficit, 14 days" tone="cyan" />
+              </div>
+            </div>
+            <div className="card" style={{ height: 240 }}>
+              <ResponsiveContainer width="100%" height="100%" initialDimension={initialDimension}>
+                <ComposedChart data={foodRows} margin={{ left: -10, right: 10, top: 10 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={24} />
+                  <YAxis />
+                  <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
+                  <Legend verticalAlign="top" iconSize={8} wrapperStyle={{ fontSize: 11, paddingBottom: 6 }} />
+                  {foodTargets?.calories ? <ReferenceLine y={foodTargets.calories} stroke="#4ade80" strokeDasharray="4 4" label={{ value: 'target', fill: '#4ade80', fontSize: 11 }} /> : null}
+                  <Bar dataKey="calories" name="Calories" fill="#ff5a1f" isAnimationActive={false}>
+                    {foodRows.map((r) => <Cell key={r.date} fill={r.complete ? '#ff5a1f' : '#b23f14'} fillOpacity={r.complete ? 1 : 0.45} />)}
+                  </Bar>
+                  <Line dataKey="avg7" name="7 day average" stroke="#22d3ee" strokeWidth={3} dot={false} connectNulls isAnimationActive={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="muted">Faded bars are days that look only partly logged. They are left out of the averages and the maintenance maths.</div>
+          </Section>
+
+          <Section title="Protein">
+            <div className="card" style={{ height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%" initialDimension={initialDimension}>
+                <BarChart data={foodRows} margin={{ left: -10, right: 10, top: 10 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={24} />
+                  <YAxis />
+                  <Tooltip content={<ChartTip />} wrapperStyle={{ outline: 'none' }} />
+                  {foodTargets?.protein ? <ReferenceLine y={foodTargets.protein} stroke="#4ade80" strokeDasharray="4 4" label={{ value: 'target', fill: '#4ade80', fontSize: 11 }} /> : null}
+                  <Bar dataKey="protein" name="Protein (g)" fill="#22d3ee" isAnimationActive={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Section>
+        </>
+      )}
 
       <Section title="Weekly volume by muscle">
         <div className="card" style={{ height: 260 }}>

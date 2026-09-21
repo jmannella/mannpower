@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { getDay, getSettings, getWorkoutByDate, listDays, listExercises, listPain, listWorkouts } from '../data/repo'
+import {
+  getDay, getSettings, getWorkoutByDate, listDays, listExercises, listMeals, listPain, listSavedMeals, listWorkouts, mealsForDate,
+} from '../data/repo'
 
 export function useSettings() {
   return useLiveQuery(() => getSettings(), [])
@@ -21,4 +23,13 @@ export function useDay(date: string) {
 }
 export function useWorkoutByDate(date: string) {
   return useLiveQuery(() => getWorkoutByDate(date), [date])
+}
+export function useMeals() {
+  return useLiveQuery(() => listMeals(), []) ?? []
+}
+export function useMealsForDate(date: string) {
+  return useLiveQuery(() => mealsForDate(date), [date]) ?? []
+}
+export function useSavedMeals() {
+  return useLiveQuery(() => listSavedMeals(), []) ?? []
 }
