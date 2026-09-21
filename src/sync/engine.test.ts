@@ -10,22 +10,24 @@ function fakeClient(remote: RemoteFile | null, putImpl?: (content: string, sha?:
   const puts: { content: string; sha?: string }[] = []
   const client = {
     get: vi.fn(async () => remote),
+    getIfChanged: vi.fn(async (knownSha?: string) => (remote && knownSha !== undefined && knownSha === remote.sha ? { unchanged: true as const, sha: remote.sha } : remote)),
     put: vi.fn(async (content: string, sha?: string) => {
       puts.push({ content, sha })
       return putImpl ? putImpl(content, sha) : 'sha-new'
     }),
   }
-  return { client: client as unknown as GitHubContents, puts }
+  return { client: client as unknown as GitHubContents, puts, spies: client }
 }
 
 function deps(local: Dataset, client: GitHubContents) {
-  const state = { sha: undefined as string | undefined, status: [] as [SyncStatus, string | undefined][], replaced: undefined as Dataset | undefined }
+  const state = { sha: undefined as string | undefined, syncedUpdatedAt: undefined as string | undefined, status: [] as [SyncStatus, string | undefined][], replaced: undefined as Dataset | undefined }
   const d: SyncDeps = {
     client,
     loadLocal: async () => local,
     replaceLocal: async (x) => { state.replaced = x },
     getSha: async () => state.sha,
-    setSha: async (sha) => { state.sha = sha },
+    getSyncedUpdatedAt: async () => state.syncedUpdatedAt,
+    setSha: async (sha, updatedAt) => { state.sha = sha; state.syncedUpdatedAt = updatedAt },
     setStatus: async (status, error) => { state.status.push([status, error]) },
   }
   return { d, state }
@@ -117,6 +119,65 @@ describe('syncOnce', () => {
     expect(await syncOnce(d)).toBe('push')
     expect(puts).toHaveLength(1)
     expect(state.sha).toBe('sha-new')
+  })
+
+  test('records which updatedAt the stored sha holds after a push and after a pull', async () => {
+    const pushed = fakeClient(null)
+    const a = deps(ds('2026-09-08T10:00:00.000Z'), pushed.client)
+    await syncOnce(a.d)
+    expect(a.state.syncedUpdatedAt).toBe('2026-09-08T10:00:00.000Z')
+
+    const pulled = fakeClient({ content: JSON.stringify(ds('2026-09-08T12:00:00.000Z')), sha: 'r1' })
+    const b = deps(ds('2026-09-08T10:00:00.000Z'), pulled.client)
+    await syncOnce(b.d)
+    expect(b.state.syncedUpdatedAt).toBe('2026-09-08T12:00:00.000Z')
+  })
+
+  test('does nothing, without parsing the remote, when the sha and the local timestamp both match the last sync', async () => {
+    // Unparseable content proves the engine never looks at it on this path.
+    const { client, puts, spies } = fakeClient({ content: 'never read', sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)
+    state.sha = 'r1'
+    state.syncedUpdatedAt = '2026-09-08T10:00:00.000Z'
+    expect(await syncOnce(d)).toBe('none')
+    expect(spies.getIfChanged).toHaveBeenCalledWith('r1')
+    expect(spies.get).not.toHaveBeenCalled()
+    expect(puts).toHaveLength(0)
+    expect(state.status.at(-1)).toEqual(['synced', undefined])
+  })
+
+  test('pushes against the known sha without downloading when only local data changed', async () => {
+    const { client, puts, spies } = fakeClient({ content: 'never read', sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T11:00:00.000Z'), client)
+    state.sha = 'r1'
+    state.syncedUpdatedAt = '2026-09-08T10:00:00.000Z'
+    expect(await syncOnce(d)).toBe('push')
+    expect(spies.get).not.toHaveBeenCalled()
+    expect(puts).toEqual([{ content: JSON.stringify(ds('2026-09-08T11:00:00.000Z')), sha: 'r1' }])
+    expect(state.sha).toBe('sha-new')
+    expect(state.syncedUpdatedAt).toBe('2026-09-08T11:00:00.000Z')
+  })
+
+  test('downloads in full when the stored sha has no recorded timestamp, as after an upgrade', async () => {
+    const remote = ds('2026-09-08T10:00:00.000Z')
+    const { client, spies } = fakeClient({ content: JSON.stringify(remote), sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)
+    state.sha = 'r1'
+    expect(await syncOnce(d)).toBe('none')
+    expect(spies.getIfChanged).toHaveBeenCalledWith(undefined)
+    expect(state.syncedUpdatedAt).toBe('2026-09-08T10:00:00.000Z')
+  })
+
+  test('downloads in full and pulls when local data looks older than the last sync', async () => {
+    const remote = ds('2026-09-08T10:00:00.000Z', 'remote')
+    const { client, puts, spies } = fakeClient({ content: JSON.stringify(remote), sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T09:00:00.000Z'), client)
+    state.sha = 'r1'
+    state.syncedUpdatedAt = '2026-09-08T10:00:00.000Z'
+    expect(await syncOnce(d)).toBe('pull')
+    expect(spies.get).toHaveBeenCalledTimes(1)
+    expect(puts).toHaveLength(0)
+    expect(state.replaced?.settings.customCardioTypes).toEqual(['remote'])
   })
 
   test('records an error status and rethrows on failure', async () => {

@@ -20,7 +20,8 @@ export async function runSync(): Promise<SyncDecision | 'skipped'> {
     loadLocal: exportDataset,
     replaceLocal: (ds) => importDataset(ds),
     getSha: async () => (await getSettings()).lastSyncSha,
-    setSha: (sha) => saveSettings({ lastSyncSha: sha }),
+    getSyncedUpdatedAt: async () => (await getSettings()).lastSyncUpdatedAt,
+    setSha: (sha, updatedAt) => saveSettings({ lastSyncSha: sha, lastSyncUpdatedAt: updatedAt }),
     setStatus: (status, error) =>
       saveSettings({ syncStatus: status, lastSyncError: error, ...(status === 'synced' ? { lastSyncedAt: new Date().toISOString() } : {}) }),
   })

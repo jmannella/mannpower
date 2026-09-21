@@ -17,7 +17,9 @@ export interface SyncDeps {
   loadLocal(): Promise<Dataset>
   replaceLocal(ds: Dataset): Promise<void>
   getSha(): Promise<string | undefined>
-  setSha(sha: string): Promise<void>
+  /** The dataset meta.updatedAt that the remote file held at the stored sha. */
+  getSyncedUpdatedAt(): Promise<string | undefined>
+  setSha(sha: string, updatedAt: string): Promise<void>
   setStatus(status: SyncStatus, error?: string): Promise<void>
 }
 
@@ -35,7 +37,23 @@ async function pushWithRetry(deps: SyncDeps, local: Dataset, sha: string | undef
 export async function syncOnce(deps: SyncDeps): Promise<SyncDecision> {
   try {
     const local = await deps.loadLocal()
-    const remote = await deps.client.get()
+    const knownSha = await deps.getSha()
+    const syncedUpdatedAt = await deps.getSyncedUpdatedAt()
+    // The stored sha only lets us skip the download when we also know which updatedAt it held.
+    let remote = await deps.client.getIfChanged(syncedUpdatedAt === undefined ? undefined : knownSha)
+    if (remote && 'unchanged' in remote) {
+      const quick = decide(local.meta.updatedAt, syncedUpdatedAt ?? null)
+      if (quick === 'push') {
+        const sha = await pushWithRetry(deps, local, remote.sha)
+        await deps.setSha(sha, local.meta.updatedAt)
+      }
+      if (quick !== 'pull') {
+        await deps.setStatus('synced')
+        return quick
+      }
+      // Local data looks older than what was last synced, so the remote content is needed after all.
+      remote = await deps.client.get()
+    }
     let remoteDs: Dataset | null = null
     if (remote) {
       let parsed: unknown
@@ -51,18 +69,18 @@ export async function syncOnce(deps: SyncDeps): Promise<SyncDecision> {
     let decision = decide(local.meta.updatedAt, remoteDs?.meta.updatedAt ?? null)
     // A device that has never synced (no stored sha) must not push and overwrite an existing
     // remote backup just because its clock-stamped meta.updatedAt happens to look newer.
-    if (decision === 'push' && remoteDs && (await deps.getSha()) === undefined
+    if (decision === 'push' && remoteDs && knownSha === undefined
       && remoteDs.workouts.length + remoteDs.days.length + remoteDs.pain.length + remoteDs.meals.length + remoteDs.savedMeals.length > 0) {
       decision = 'pull'
     }
     if (decision === 'pull' && remoteDs && remote) {
       await deps.replaceLocal(remoteDs)
-      await deps.setSha(remote.sha)
+      await deps.setSha(remote.sha, remoteDs.meta.updatedAt)
     } else if (decision === 'push') {
-      const sha = await pushWithRetry(deps, local, remote?.sha ?? (await deps.getSha()))
-      await deps.setSha(sha)
-    } else if (remote) {
-      await deps.setSha(remote.sha)
+      const sha = await pushWithRetry(deps, local, remote?.sha ?? knownSha)
+      await deps.setSha(sha, local.meta.updatedAt)
+    } else if (remote && remoteDs) {
+      await deps.setSha(remote.sha, remoteDs.meta.updatedAt)
     }
     await deps.setStatus('synced')
     return decision
