@@ -1,4 +1,4 @@
-import type { BodyArea, DayRecord, PainEntry, SetRecord, Severity, Workout, WorkoutEntry } from '../domain/types'
+import type { BodyArea, DayRecord, MealEntry, PainEntry, SetRecord, Severity, Workout, WorkoutEntry } from '../domain/types'
 
 let counter = 0
 const nextId = (prefix: string) => `${prefix}-${++counter}`
@@ -32,4 +32,12 @@ export function mkDay(date: string, patch: Partial<DayRecord> = {}): DayRecord {
 
 export function mkPain(date: string, area: BodyArea, severity: Severity, patch: Partial<PainEntry> = {}): PainEntry {
   return { id: nextId('p'), date, area, severity, limited: false, createdAt: `${date}T12:00:00.000Z`, ...patch }
+}
+
+export function mkMeal(date: string, calories: number, protein = 0, patch: Partial<MealEntry> = {}): MealEntry {
+  return {
+    id: nextId('m'), date, time: '12:00', description: 'Meal', source: 'quick',
+    items: [{ name: 'Meal', kind: 'food', calories, protein }],
+    createdAt: `${date}T12:00:00.000Z`, updatedAt: `${date}T12:00:00.000Z`, ...patch,
+  }
 }
