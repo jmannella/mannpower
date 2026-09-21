@@ -185,7 +185,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 /** Sync bookkeeping fields do not touch meta, so a status update never triggers another sync. */
-const SYNC_ONLY_KEYS: (keyof Settings)[] = ['lastSyncedAt', 'lastSyncSha', 'syncStatus', 'lastSyncError', 'githubToken', 'dataRepo', 'anthropicKey', 'aiModel']
+const SYNC_ONLY_KEYS: (keyof Settings)[] = ['lastSyncedAt', 'lastSyncSha', 'lastSyncUpdatedAt', 'syncStatus', 'lastSyncError', 'githubToken', 'dataRepo', 'anthropicKey', 'aiModel']
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   const touchesData = Object.keys(patch).some((k) => !SYNC_ONLY_KEYS.includes(k as keyof Settings))

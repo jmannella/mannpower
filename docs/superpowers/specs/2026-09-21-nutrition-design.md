@@ -85,6 +85,9 @@ Meals grow `data.json` by roughly 2 MB a year, and the GitHub Contents API stops
 
 1. `GitHubContents.get()` keeps its current JSON request (it needs the sha). When the response has no usable `content` (GitHub sends an empty string with encoding `none` for files from 1 to 100 MB), it makes a second request with `Accept: application/vnd.github.raw` and uses that body.
 2. The sync engine writes compact JSON instead of pretty printed JSON.
+3. Writes stay on the Contents API. GitHub documents no size limit for creating or updating a file there (the 1 MB figure applies to reads only), and the Git Data API would cost four or five requests per push with no bandwidth saving. Community reports put the practical ceiling somewhere between 10 MB and 50 MB, which is years away. When GitHub does refuse a file it answers 422 with a "too large" message, so `GitHubContents` reports that as a plain `SyncError` instead of a conflict that the engine would retry.
+4. The phone stores `lastSyncUpdatedAt` beside `lastSyncSha`. `GitHubContents.getIfChanged(knownSha)` skips the content when the remote sha is the one already known, and the engine then decides from timestamps alone: equal means nothing to do, newer local data is pushed against the known sha. Only a changed remote, a first sync or local data that looks older than the last sync downloads the file.
+5. Auto sync waits 2 minutes after the last change, and never more than 10 minutes after the first, because every push uploads the whole file. Nothing reads the remote within minutes: the phone is the only writer and the Sunday report is the only other reader. A timer lost when Android suspends the app is covered by the sync that runs at every launch and on reconnect.
 
 The report script shares `GitHubContents`, so it gets the fix for free.
 

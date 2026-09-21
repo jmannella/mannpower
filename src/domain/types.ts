@@ -161,6 +161,8 @@ export interface Settings extends SyncedSettings {
   dataRepo: string
   lastSyncedAt?: string
   lastSyncSha?: string
+  /** The meta.updatedAt of the dataset stored remotely at lastSyncSha. */
+  lastSyncUpdatedAt?: string
   syncStatus: SyncStatus
   lastSyncError?: string
 }

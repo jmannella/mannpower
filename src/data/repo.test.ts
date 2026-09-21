@@ -78,7 +78,7 @@ describe('repo', () => {
     const before = (await getMeta()).updatedAt
     const seen: number[] = []
     const off = onDataChange(() => seen.push(1))
-    await saveSettings({ syncStatus: 'synced', lastSyncedAt: '2026-09-08T12:00:00.000Z', lastSyncSha: 'abc', lastSyncError: undefined, githubToken: 'tok', dataRepo: 'x/y' })
+    await saveSettings({ syncStatus: 'synced', lastSyncedAt: '2026-09-08T12:00:00.000Z', lastSyncSha: 'abc', lastSyncUpdatedAt: '2026-09-08T11:00:00.000Z', lastSyncError: undefined, githubToken: 'tok', dataRepo: 'x/y' })
     off()
     expect((await getMeta()).updatedAt).toBe(before)
     expect(seen).toHaveLength(0)

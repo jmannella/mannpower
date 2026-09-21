@@ -3,6 +3,7 @@ import { onDataChange } from '../data/changes'
 export interface AutoSyncOptions {
   run: () => Promise<unknown>
   delayMs?: number
+  maxWaitMs?: number
   subscribe?: (cb: () => void) => () => void
   target?: EventTarget
 }
@@ -13,10 +14,15 @@ export interface AutoSync {
   stop(): void
 }
 
-/** Debounce data changes into a sync run, run again if changes arrived mid-run, and run on reconnect. */
-export function createAutoSync({ run, delayMs = 5000, subscribe = onDataChange, target }: AutoSyncOptions): AutoSync {
+/**
+ * Debounce data changes into a sync run, run again if changes arrived mid-run, and run on reconnect.
+ * Every push uploads the whole file, so the delay is longer than a rest between sets and a workout
+ * becomes a few pushes. The maximum wait stops steady logging from postponing a run forever.
+ */
+export function createAutoSync({ run, delayMs = 120_000, maxWaitMs = 600_000, subscribe = onDataChange, target }: AutoSyncOptions): AutoSync {
   const eventTarget = target ?? (typeof window !== 'undefined' ? window : undefined)
   let timer: ReturnType<typeof setTimeout> | undefined
+  let waitingSince: number | undefined
   let running = false
   let queued = false
   let stopped = false
@@ -46,7 +52,10 @@ export function createAutoSync({ run, delayMs = 5000, subscribe = onDataChange, 
   const schedule = (): void => {
     if (stopped) return
     if (timer) clearTimeout(timer)
-    timer = setTimeout(() => { timer = undefined; void kick() }, delayMs)
+    const now = Date.now()
+    waitingSince ??= now
+    const wait = Math.max(0, Math.min(delayMs, waitingSince + maxWaitMs - now))
+    timer = setTimeout(() => { timer = undefined; waitingSince = undefined; void kick() }, wait)
   }
 
   const unsubscribe = subscribe(schedule)
