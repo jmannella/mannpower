@@ -97,12 +97,16 @@ export function parseEstimate(output: unknown): EstimateResult {
 }
 
 /** The real client. Requests go straight from the phone to the Claude API with the key from Settings. */
-export function sdkClient(apiKey: string): EstimateClient {
+export function sdkClient(
+  apiKey: string,
+  // Wrapped so fetch is called on the global; browsers throw "Illegal invocation" on a bare reference.
+  // Also the injection seam wire level tests use to capture the real request without a network call.
+  fetchImpl: typeof fetch = (input, init) => globalThis.fetch(input, init),
+): EstimateClient {
   const client = new Anthropic({
     apiKey,
     dangerouslyAllowBrowser: true,
-    // Wrapped so fetch is called on the global; browsers throw "Illegal invocation" on a bare reference.
-    fetch: (input, init) => globalThis.fetch(input, init),
+    fetch: fetchImpl,
     maxRetries: 1,
     timeout: 60_000,
   })
@@ -110,19 +114,32 @@ export function sdkClient(apiKey: string): EstimateClient {
     async send(req) {
       const base = { model: req.model, max_tokens: 4000, system: req.system, messages: [{ role: 'user' as const, content: req.content }] }
       const effort = req.effort ? { effort: 'low' as const } : {}
-      if (req.fallbacks) {
-        const r = await client.beta.messages.parse({
-          ...base,
-          betas: ['server-side-fallback-2026-07-01'],
-          fallbacks: 'default',
-          output_config: { ...effort, format: betaJSONSchemaOutputFormat(ESTIMATE_SCHEMA) },
-        })
+      try {
+        if (req.fallbacks) {
+          const r = await client.beta.messages.parse({
+            ...base,
+            betas: ['server-side-fallback-2026-07-01'],
+            fallbacks: 'default',
+            output_config: { ...effort, format: betaJSONSchemaOutputFormat(ESTIMATE_SCHEMA) },
+          })
+          return { stopReason: r.stop_reason, output: r.parsed_output }
+        }
+        const r = await client.messages.parse({ ...base, output_config: { ...effort, format: jsonSchemaOutputFormat(ESTIMATE_SCHEMA) } })
         return { stopReason: r.stop_reason, output: r.parsed_output }
+      } catch (err) {
+        // A cut off reply is valid JSON syntax gone wrong, not an API error: parse() throws before the raw
+        // stop_reason is reachable. Treat that specific failure as the truncation case, everything else
+        // (Anthropic.APIError, connection errors) keeps propagating to estimateMeal's mapError.
+        if (isStructuredOutputParseFailure(err)) return { stopReason: 'max_tokens', output: null }
+        throw err
       }
-      const r = await client.messages.parse({ ...base, output_config: { ...effort, format: jsonSchemaOutputFormat(ESTIMATE_SCHEMA) } })
-      return { stopReason: r.stop_reason, output: r.parsed_output }
     },
   }
+}
+
+function isStructuredOutputParseFailure(err: unknown): boolean {
+  return err instanceof Anthropic.AnthropicError && !(err instanceof Anthropic.APIError)
+    && /Failed to parse structured output/.test(err.message)
 }
 
 const defaultDeps: EstimateDeps = {

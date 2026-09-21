@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { buildRequest, estimateMeal, parseEstimate, type EstimateClient, type EstimateDeps, type EstimateRequest } from './estimate'
+import { buildRequest, estimateMeal, parseEstimate, sdkClient, SYSTEM_PROMPT, type EstimateClient, type EstimateDeps, type EstimateRequest } from './estimate'
 
 const goodOutput = {
   items: [
@@ -113,5 +113,109 @@ describe('estimateMeal', () => {
   test('failure messages never contain the key', async () => {
     const r = await estimateMeal({ text: 'x' }, deps({}, new Error('bad key sk-test')).d)
     expect(JSON.stringify(r)).not.toContain('sk-test')
+  })
+})
+
+describe('sdkClient wire format', () => {
+  function fakeFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Response | Promise<Response>) {
+    const calls: { input: RequestInfo | URL; init?: RequestInit }[] = []
+    const fetchImpl: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      return handler(input, init)
+    }
+    return { fetchImpl, calls }
+  }
+
+  function messagesReply(model: string, output: unknown, stopReason: string | null = 'end_turn') {
+    return new Response(JSON.stringify({
+      id: 'msg_test',
+      type: 'message',
+      role: 'assistant',
+      model,
+      content: [{ type: 'text', text: JSON.stringify(output) }],
+      stop_reason: stopReason,
+      stop_sequence: null,
+      usage: { input_tokens: 10, output_tokens: 10 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  function body(init?: RequestInit) {
+    return JSON.parse(init?.body as string)
+  }
+
+  test('opus 5 sends max_tokens 4000, low effort, server side fallbacks, the system prompt and the key', async () => {
+    const { fetchImpl, calls } = fakeFetch(() => messagesReply('claude-opus-5', goodOutput))
+    const client = sdkClient('sk-test', fetchImpl)
+    const result = await client.send(buildRequest('claude-opus-5', 'two eggs and toast'))
+
+    expect(calls).toHaveLength(1)
+    // The beta surface (used here for fallbacks) appends ?beta=true; the plain surface (sonnet, haiku below) does not.
+    expect(String(calls[0].input)).toContain('/v1/messages')
+
+    const sentBody = body(calls[0].init)
+    expect(sentBody).toMatchObject({ model: 'claude-opus-5', max_tokens: 4000, fallbacks: 'default', system: SYSTEM_PROMPT })
+    expect(sentBody.output_config.effort).toBe('low')
+    expect(sentBody.output_config.format.type).toBe('json_schema')
+    expect(sentBody.messages).toEqual([{ role: 'user', content: [{ type: 'text', text: 'two eggs and toast' }] }])
+
+    const headers = new Headers(calls[0].init?.headers)
+    expect(headers.get('anthropic-beta')).toContain('server-side-fallback-2026-07-01')
+    expect(headers.get('x-api-key')).toBe('sk-test')
+
+    expect(result).toEqual({ stopReason: 'end_turn', output: goodOutput })
+  })
+
+  test('sonnet 5 keeps low effort but sends no fallbacks and no server side fallback beta', async () => {
+    const { fetchImpl, calls } = fakeFetch(() => messagesReply('claude-sonnet-5', goodOutput))
+    const client = sdkClient('sk-test', fetchImpl)
+    await client.send(buildRequest('claude-sonnet-5', 'x'))
+
+    const sentBody = body(calls[0].init)
+    expect(sentBody.output_config.effort).toBe('low')
+    expect(sentBody.fallbacks).toBeUndefined()
+    const headers = new Headers(calls[0].init?.headers)
+    expect(headers.has('anthropic-beta')).toBe(false)
+  })
+
+  test('haiku 4.5 drops effort entirely and sends no fallbacks', async () => {
+    const { fetchImpl, calls } = fakeFetch(() => messagesReply('claude-haiku-4-5', goodOutput))
+    const client = sdkClient('sk-test', fetchImpl)
+    await client.send(buildRequest('claude-haiku-4-5', 'x'))
+
+    const sentBody = body(calls[0].init)
+    expect(sentBody.output_config).not.toHaveProperty('effort')
+    expect(sentBody.fallbacks).toBeUndefined()
+  })
+
+  test('a photo goes out first, as a base64 jpeg image block', async () => {
+    const { fetchImpl, calls } = fakeFetch(() => messagesReply('claude-opus-5', goodOutput))
+    const client = sdkClient('sk-test', fetchImpl)
+    await client.send(buildRequest('claude-opus-5', 'large', 'BASE64JPEG'))
+
+    const sentBody = body(calls[0].init)
+    expect(sentBody.messages[0].content[0]).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'BASE64JPEG' } })
+  })
+
+  test('a cut off reply fails safely through estimateMeal instead of throwing', async () => {
+    const truncated = JSON.stringify(goodOutput).slice(0, 40)
+    const { fetchImpl, calls } = fakeFetch(() => new Response(JSON.stringify({
+      id: 'msg_test', type: 'message', role: 'assistant', model: 'claude-opus-5',
+      content: [{ type: 'text', text: truncated }],
+      stop_reason: 'max_tokens', stop_sequence: null, usage: { input_tokens: 10, output_tokens: 10 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } }))
+
+    const { d } = deps({ makeClient: (key) => sdkClient(key, fetchImpl) })
+    const result = await estimateMeal({ text: 'x' }, d)
+    expect(result).toMatchObject({ ok: false, reason: 'failed', message: 'The estimate was cut off. Try a shorter description.' })
+    expect(calls).toHaveLength(1)
+  })
+
+  test('a 401 from the wire maps to auth and never carries the key', async () => {
+    const { fetchImpl, calls } = fakeFetch(() => new Response(JSON.stringify({ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }), { status: 401, headers: { 'content-type': 'application/json' } }))
+    const { d } = deps({ makeClient: (key) => sdkClient(key, fetchImpl) })
+    const result = await estimateMeal({ text: 'x' }, d)
+    expect(result).toMatchObject({ ok: false, reason: 'auth' })
+    expect(JSON.stringify(result)).not.toContain('sk-test')
+    expect(calls).toHaveLength(1)
   })
 })
