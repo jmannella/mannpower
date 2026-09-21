@@ -1,25 +1,647 @@
 {
-  "meta": { "schemaVersion": 1, "updatedAt": "2026-09-13T22:00:00.000Z" },
+  "meta": {
+    "schemaVersion": 1,
+    "updatedAt": "2026-09-13T22:00:00.000Z"
+  },
   "exercises": [],
   "workouts": [
-    { "id": "p1", "date": "2026-08-31", "withTrainer": true, "createdAt": "", "updatedAt": "", "entries": [
-      { "id": "a", "exerciseId": "back-squat", "sets": [{ "weight": 185, "reps": 8, "warmup": false }, { "weight": 185, "reps": 8, "warmup": false }] } ] },
-    { "id": "p2", "date": "2026-09-02", "withTrainer": true, "createdAt": "", "updatedAt": "", "entries": [
-      { "id": "b", "exerciseId": "barbell-bench-press", "sets": [{ "weight": 135, "reps": 8, "warmup": false }] } ] },
-    { "id": "w1", "date": "2026-09-07", "withTrainer": true, "createdAt": "", "updatedAt": "", "entries": [
-      { "id": "c", "exerciseId": "back-squat", "sets": [{ "weight": 185, "reps": 8, "warmup": false }, { "weight": 185, "reps": 8, "warmup": false }] },
-      { "id": "d", "exerciseId": "lat-pulldown", "sets": [{ "weight": 120, "reps": 10, "warmup": false }] } ] },
-    { "id": "w2", "date": "2026-09-09", "withTrainer": false, "createdAt": "", "updatedAt": "", "entries": [
-      { "id": "e", "exerciseId": "barbell-bench-press", "sets": [{ "weight": 145, "reps": 8, "warmup": false }] } ] }
+    {
+      "id": "p1",
+      "date": "2026-08-31",
+      "withTrainer": true,
+      "createdAt": "",
+      "updatedAt": "",
+      "entries": [
+        {
+          "id": "a",
+          "exerciseId": "back-squat",
+          "sets": [
+            {
+              "weight": 185,
+              "reps": 8,
+              "warmup": false
+            },
+            {
+              "weight": 185,
+              "reps": 8,
+              "warmup": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "date": "2026-09-02",
+      "withTrainer": true,
+      "createdAt": "",
+      "updatedAt": "",
+      "entries": [
+        {
+          "id": "b",
+          "exerciseId": "barbell-bench-press",
+          "sets": [
+            {
+              "weight": 135,
+              "reps": 8,
+              "warmup": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w1",
+      "date": "2026-09-07",
+      "withTrainer": true,
+      "createdAt": "",
+      "updatedAt": "",
+      "entries": [
+        {
+          "id": "c",
+          "exerciseId": "back-squat",
+          "sets": [
+            {
+              "weight": 185,
+              "reps": 8,
+              "warmup": false
+            },
+            {
+              "weight": 185,
+              "reps": 8,
+              "warmup": false
+            }
+          ]
+        },
+        {
+          "id": "d",
+          "exerciseId": "lat-pulldown",
+          "sets": [
+            {
+              "weight": 120,
+              "reps": 10,
+              "warmup": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w2",
+      "date": "2026-09-09",
+      "withTrainer": false,
+      "createdAt": "",
+      "updatedAt": "",
+      "entries": [
+        {
+          "id": "e",
+          "exerciseId": "barbell-bench-press",
+          "sets": [
+            {
+              "weight": 145,
+              "reps": 8,
+              "warmup": false
+            }
+          ]
+        }
+      ]
+    }
   ],
   "days": [
-    { "date": "2026-09-01", "bodyWeight": 250, "steps": 7000, "cardio": [], "updatedAt": "" },
-    { "date": "2026-09-08", "bodyWeight": 247, "steps": 11000, "cardio": [{ "id": "x", "type": "Desk treadmill", "minutes": 40 }], "updatedAt": "" },
-    { "date": "2026-09-10", "bodyWeight": 246.5, "steps": 8000, "cardio": [{ "id": "y", "type": "Bike", "minutes": 25 }], "updatedAt": "" }
+    {
+      "date": "2026-09-01",
+      "bodyWeight": 250,
+      "steps": 7000,
+      "cardio": [],
+      "updatedAt": ""
+    },
+    {
+      "date": "2026-09-08",
+      "bodyWeight": 247,
+      "steps": 11000,
+      "cardio": [
+        {
+          "id": "x",
+          "type": "Desk treadmill",
+          "minutes": 40
+        }
+      ],
+      "updatedAt": ""
+    },
+    {
+      "date": "2026-09-10",
+      "bodyWeight": 246.5,
+      "steps": 8000,
+      "cardio": [
+        {
+          "id": "y",
+          "type": "Bike",
+          "minutes": 25
+        }
+      ],
+      "updatedAt": ""
+    }
   ],
   "pain": [
-    { "id": "q1", "date": "2026-08-31", "area": "lower_back", "severity": 2, "limited": false, "workoutId": "p1", "createdAt": "" },
-    { "id": "q2", "date": "2026-09-07", "area": "lower_back", "severity": 3, "limited": true, "workoutId": "w1", "exerciseId": "back-squat", "createdAt": "" }
+    {
+      "id": "q1",
+      "date": "2026-08-31",
+      "area": "lower_back",
+      "severity": 2,
+      "limited": false,
+      "workoutId": "p1",
+      "createdAt": ""
+    },
+    {
+      "id": "q2",
+      "date": "2026-09-07",
+      "area": "lower_back",
+      "severity": 3,
+      "limited": true,
+      "workoutId": "w1",
+      "exerciseId": "back-squat",
+      "createdAt": ""
+    }
   ],
-  "settings": { "defaultWithTrainer": true, "customCardioTypes": [], "dailyStepGoal": 10000, "targetBodyWeight": 220 }
+  "settings": {
+    "defaultWithTrainer": true,
+    "customCardioTypes": [],
+    "dailyStepGoal": 10000,
+    "targetBodyWeight": 220,
+    "birthYear": 1979,
+    "heightInches": 70,
+    "sex": "male"
+  },
+  "meals": [
+    {
+      "id": "fm0a",
+      "date": "2026-09-07",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm0b",
+      "date": "2026-09-07",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm0c",
+      "date": "2026-09-07",
+      "time": "18:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 900,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm1a",
+      "date": "2026-09-08",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm1b",
+      "date": "2026-09-08",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm1c",
+      "date": "2026-09-08",
+      "time": "18:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 900,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm2a",
+      "date": "2026-09-09",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm2b",
+      "date": "2026-09-09",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm2c",
+      "date": "2026-09-09",
+      "time": "18:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 900,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm3a",
+      "date": "2026-09-10",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm3b",
+      "date": "2026-09-10",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm3c",
+      "date": "2026-09-10",
+      "time": "18:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 900,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm4a",
+      "date": "2026-09-11",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm4b",
+      "date": "2026-09-11",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm4c",
+      "date": "2026-09-11",
+      "time": "18:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 900,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm5a",
+      "date": "2026-09-12",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm5b",
+      "date": "2026-09-12",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm5c",
+      "date": "2026-09-12",
+      "time": "20:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 1400,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm6a",
+      "date": "2026-09-13",
+      "time": "08:00",
+      "description": "Eggs and toast",
+      "source": "saved",
+      "items": [
+        {
+          "name": "Eggs and toast",
+          "kind": "food",
+          "calories": 450,
+          "protein": 28,
+          "carbs": 30,
+          "fat": 22,
+          "fibre": 3
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm6b",
+      "date": "2026-09-13",
+      "time": "12:30",
+      "description": "Chicken wrap and coffee",
+      "source": "ai",
+      "confidence": "medium",
+      "items": [
+        {
+          "name": "Chicken wrap",
+          "kind": "food",
+          "calories": 620,
+          "protein": 38,
+          "carbs": 55,
+          "fat": 24,
+          "fibre": 5
+        },
+        {
+          "name": "Double double",
+          "kind": "drink",
+          "calories": 230,
+          "protein": 4,
+          "carbs": 28,
+          "fat": 12,
+          "fibre": 0
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "fm6c",
+      "date": "2026-09-13",
+      "time": "20:30",
+      "description": "Dinner",
+      "source": "quick",
+      "items": [
+        {
+          "name": "Dinner",
+          "kind": "food",
+          "calories": 1400,
+          "protein": 55
+        }
+      ],
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ],
+  "savedMeals": []
 }
