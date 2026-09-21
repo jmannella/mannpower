@@ -2,9 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HashRouter } from 'react-router-dom'
 import { db } from '../../data/db'
-import { getDay, listPain } from '../../data/repo'
+import { getDay, listPain, saveMeal, saveSettings } from '../../data/repo'
 import { todayISO } from '../../domain/dates'
 import Today from './Today'
+import { vi } from 'vitest'
+
+vi.mock('../../nutrition/estimate', () => ({ estimateMeal: vi.fn() }))
 
 beforeEach(async () => {
   await db.delete()
@@ -72,5 +75,16 @@ describe('Today', () => {
     await userEvent.click(await screen.findByRole('button', { name: '+ Desk treadmill' }))
     expect(screen.getByRole('button', { name: 'Desk treadmill' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Bike' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  test('food card shows what is left and opens the meal sheet', async () => {
+    await saveSettings({ calorieTargetOverride: 2200, proteinTargetOverride: 180 })
+    await saveMeal({ id: 'm', date: todayISO(), time: '08:00', description: 'Breakfast', source: 'quick', items: [{ name: 'Breakfast', kind: 'food', calories: 400, protein: 30 }], createdAt: '', updatedAt: '' })
+    renderToday()
+    expect(await screen.findByText('1800')).toBeInTheDocument()
+    expect(screen.getByText('kcal left')).toBeInTheDocument()
+    expect(screen.getByText('150')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Add meal' }))
+    expect(screen.getByRole('dialog', { name: 'Add meal' })).toBeInTheDocument()
   })
 })

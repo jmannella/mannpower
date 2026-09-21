@@ -6,8 +6,9 @@ import { BigNumber } from '../components/BigNumber'
 import { Section } from '../components/Section'
 import { Sheet } from '../components/Sheet'
 import { Chip } from '../components/Chip'
+import { MealSheet } from '../MealSheet'
 import { PainSheet } from '../PainSheet'
-import { useDay, useDays, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
+import { useDay, useDays, useMeals, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
 import { getSettings, modifyDay, saveSettings } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { addDays, formatShort, todayISO, weekEnd, weekStart } from '../../domain/dates'
@@ -15,6 +16,8 @@ import { BUILTIN_CARDIO_TYPES } from '../../library/cardioTypes'
 import { bodyAreaLabel } from '../../library/bodyAreas'
 import { bodyWeightAvg7 } from '../../stats/bodyweight'
 import { dayCardioMinutes, stepsSummary } from '../../stats/activity'
+import { dayTotals } from '../../nutrition/totals'
+import { targetsFor } from '../../nutrition/targets'
 import type { CardioSession, DayRecord } from '../../domain/types'
 
 export default function Today() {
@@ -28,6 +31,13 @@ export default function Today() {
   const navigate = useNavigate()
   const [cardioOpen, setCardioOpen] = useState<{ type: string } | null>(null)
   const [painOpen, setPainOpen] = useState(false)
+  const [mealOpen, setMealOpen] = useState(false)
+
+  const meals = useMeals()
+  const food = dayTotals(meals, date)
+  const targets = settings ? targetsFor({ meals, days, workouts, settings }, date) : undefined
+  const left = (target: number | undefined, eaten: number) => (target === undefined ? Math.round(eaten) : Math.abs(Math.round(target - eaten)))
+  const leftLabel = (target: number | undefined, eaten: number, unit: string) => (target === undefined ? `${unit} eaten` : target - eaten >= 0 ? `${unit} left` : `${unit} over`)
 
   const base: DayRecord = day ?? { date, cardio: [], updatedAt: '' }
   // Each write happens inside one transaction so two quick edits never clobber each other.
@@ -70,6 +80,16 @@ export default function Today() {
         {workout ? 'Continue workout' : 'Start workout'}
       </button>
 
+      <Section title="Food" right={<button type="button" className="btn btn-sm" onClick={() => setMealOpen(true)}>Add meal</button>}>
+        <div className="card">
+          <div className="grid-3">
+            <BigNumber value={left(targets?.calories, food.calories)} label={leftLabel(targets?.calories, food.calories, 'kcal')} tone="accent" />
+            <BigNumber value={left(targets?.protein, food.protein)} label={leftLabel(targets?.protein, food.protein, 'g protein')} tone="cyan" />
+            <BigNumber value={food.meals} label="Meals" />
+          </div>
+        </div>
+      </Section>
+
       <Section title="Cardio" right={<span className="muted">{dayCardioMinutes(base)} min</span>}>
         <div className="chips">
           <Chip onClick={() => setCardioOpen({ type: 'Desk treadmill' })} className="chip-on">+ Desk treadmill</Chip>
@@ -110,6 +130,7 @@ export default function Today() {
         <CardioSheet initialType={cardioOpen.type} types={cardioTypes} onClose={() => setCardioOpen(null)} onAdd={addCardio} />
       )}
       <PainSheet open={painOpen} onClose={() => setPainOpen(false)} date={date} />
+      {mealOpen && <MealSheet date={date} onClose={() => setMealOpen(false)} />}
     </div>
   )
 }
