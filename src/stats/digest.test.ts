@@ -110,6 +110,7 @@ describe('weeklyDigest', () => {
     expect(md).toMatch(/- Calories: avg 2286 a day against a target of \d+/)
     expect(md).toContain('- Protein: avg 136 g against a target of 140 g, target hit on 5 of 7 complete days')
     expect(md).toMatch(/- Maintenance: about \d+ kcal \(formula\)/)
+    expect(md).toContain('- Maintenance: about 3101 kcal (formula). It switches to measured after 14 complete days in 28. Avg daily deficit 815 kcal')
     expect(md).toContain('- Weekday avg 2000 kcal vs weekend avg 3000 kcal')
     expect(md).toContain('- Top calorie items: Meal 16000 kcal (7)')
     expect(md).toContain('after 8 pm 18.8%')

@@ -183,7 +183,7 @@ export function MealSheet({ date, editing, onClose }: { date: string; editing?: 
           <label className="field"><span className="field-label">Name</span>
             <input className="input" aria-label="Name" value={quickName} onChange={(e) => setQuickName(e.target.value)} placeholder="Optional" />
           </label>
-          <button type="button" className="btn btn-primary btn-block" onClick={saveQuick}>Save quick add</button>
+          <button type="button" className="btn btn-primary btn-block" disabled={!quickCalories || quickCalories <= 0} onClick={saveQuick}>Save quick add</button>
         </div>
       )}
     </Sheet>

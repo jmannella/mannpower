@@ -96,6 +96,18 @@ describe('syncOnce', () => {
     expect(state.sha).toBe('r1')
   })
 
+  test('never-synced device pulls instead of overwriting a remote backup that holds only saved meals', async () => {
+    const remote = ds('2026-09-08T09:00:00.000Z', 'remote')
+    remote.savedMeals = [{ id: 'sm1', name: 'Eggs and toast', items: [], useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z' }]
+    const { client, puts } = fakeClient({ content: JSON.stringify(remote), sha: 'r1' })
+    const { d, state } = deps(ds('2026-09-08T10:00:00.000Z'), client)
+    // getSha defaults to undefined in `deps`, simulating an install that has never synced.
+    expect(await syncOnce(d)).toBe('pull')
+    expect(puts).toHaveLength(0)
+    expect(state.replaced?.savedMeals).toHaveLength(1)
+    expect(state.sha).toBe('r1')
+  })
+
   test('a device with a known sha still pushes newer local data over an older remote', async () => {
     const remote = ds('2026-09-08T09:00:00.000Z', 'remote')
     remote.workouts = [{ id: 'w1', date: '2026-09-01', withTrainer: true, entries: [], createdAt: '', updatedAt: '' }]

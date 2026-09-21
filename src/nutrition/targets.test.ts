@@ -2,7 +2,7 @@ import { addDays, eachDay } from '../domain/dates'
 import { mkDay, mkEntry, mkMeal, mkWorkout } from '../stats/testData'
 import type { SyncedSettings } from '../domain/types'
 import {
-  activityFactor, bmr, dailyIntake, formulaMaintenance, maintenanceAt, measuredMaintenance, missingProfileFields, targetsFor,
+  activityFactor, bmr, dailyIntake, formulaMaintenance, maintenanceAt, measuredMaintenance, missingProfileFields, targetsFor, weightAt,
   type NutritionInput,
 } from './targets'
 
@@ -80,6 +80,29 @@ describe('complete days', () => {
     const throughEarly = dailyIntake(data, start, early).find((r) => r.date === early)?.complete
     const throughLate = dailyIntake(data, start, late).find((r) => r.date === early)?.complete
     expect(throughEarly).toBe(throughLate)
+  })
+})
+
+describe('weightAt falls back past a skipped week of weigh ins', () => {
+  test('a weigh in 12 days before the date is used when none fall in the trailing 7 days', () => {
+    const days = [mkDay('2026-09-08', { bodyWeight: 238 })]
+    expect(weightAt(days, '2026-09-20')).toBe(238)
+  })
+
+  test('a weigh in logged after the date is ignored', () => {
+    const days = [mkDay('2026-09-25', { bodyWeight: 235 })]
+    expect(weightAt(days, '2026-09-20')).toBeUndefined()
+  })
+
+  test('no weigh ins at all returns undefined', () => {
+    expect(weightAt([], '2026-09-20')).toBeUndefined()
+  })
+
+  test('targetsFor still returns a calorie target after a skipped week of weigh ins', () => {
+    const days = [mkDay('2026-09-08', { bodyWeight: 240 })]
+    const t = targetsFor(input({ days }), '2026-09-20')
+    expect(t.calories).toBeDefined()
+    expect(t.missing).toEqual([])
   })
 })
 

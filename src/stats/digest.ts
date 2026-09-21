@@ -177,7 +177,8 @@ export function digestMarkdown(d: Digest): string {
     lines.push(`- Complete days logged: ${food.completeDays} of 7 (${food.mealsLogged} meals, ${food.pendingMeals} waiting for an estimate). Averages use complete days only`)
     lines.push(`- Calories: avg ${n(food.avgCalories)} a day against a target of ${n(food.calorieTarget)}`)
     lines.push(`- Protein: avg ${n(food.avgProtein)} g against a target of ${n(food.proteinTarget)} g, target hit on ${food.proteinDaysHit ?? 'n/a'} of ${food.completeDays} complete days; fibre avg ${n(food.avgFibre)} g`)
-    lines.push(`- Maintenance: about ${n(food.maintenance)} kcal (${food.maintenanceSource})${food.maintenanceSource === 'formula' ? ', switches to measured after 14 complete days in 28' : ''}; avg daily deficit ${n(food.avgDeficit)} kcal`)
+    const switchesNote = food.maintenanceSource === 'formula' ? ' It switches to measured after 14 complete days in 28.' : ''
+    lines.push(`- Maintenance: about ${n(food.maintenance)} kcal (${food.maintenanceSource}).${switchesNote} Avg daily deficit ${n(food.avgDeficit)} kcal`)
     lines.push(`- Reconciliation: intake predicts ${n(food.predictedChangeLbs, 1)} lb this week, the 7 day average weight moved ${n(food.actualChangeLbs, 1)} lb`)
     lines.push(`- Weekday avg ${n(food.weekdayAvgCalories)} kcal vs weekend avg ${n(food.weekendAvgCalories)} kcal`)
     const grp = (g?: { days: number; calories: number; protein: number }) => (g ? `${n(g.calories)} kcal and ${n(g.protein)} g protein over ${g.days} days` : 'n/a')

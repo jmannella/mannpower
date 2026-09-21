@@ -90,9 +90,9 @@ export default function Trends() {
   const span = Math.max(1, daysBetween(from, today))
 
   const nutritionInput = settings ? { meals, days, workouts, settings } : undefined
-  const foodRows = nutritionInput ? nutritionSeries(nutritionInput, from, today) : []
-  const foodTargets = nutritionInput ? targetsFor(nutritionInput, today) : undefined
-  const deficit = nutritionInput ? recentDeficit(nutritionInput, today) : undefined
+  const foodRows = useMemo(() => (nutritionInput ? nutritionSeries(nutritionInput, from, today) : []), [meals, days, workouts, settings, from, today])
+  const foodTargets = useMemo(() => (nutritionInput ? targetsFor(nutritionInput, today) : undefined), [meals, days, workouts, settings, from, today])
+  const deficit = useMemo(() => (nutritionInput ? recentDeficit(nutritionInput, today) : undefined), [meals, days, workouts, settings, from, today])
 
   return (
     <div className="screen">

@@ -17,6 +17,15 @@ beforeEach(async () => {
 })
 
 describe('MealSheet', () => {
+  test('quick add is disabled until a positive calories value is committed', async () => {
+    render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Quick add' }))
+    expect(screen.getByRole('button', { name: 'Save quick add' })).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('Calories'), '650')
+    await userEvent.tab()
+    expect(screen.getByRole('button', { name: 'Save quick add' })).toBeEnabled()
+  })
+
   test('quick add saves a one item meal and closes', async () => {
     const onClose = vi.fn()
     render(<MealSheet date={DATE} onClose={onClose} />)
@@ -44,6 +53,7 @@ describe('MealSheet', () => {
     expect(await screen.findByDisplayValue('Burger')).toBeInTheDocument()
     expect(mockEstimate).toHaveBeenCalledWith({ text: 'cheeseburger', photo: undefined })
     await userEvent.click(screen.getByRole('button', { name: '2x' }))
+    expect(screen.getByLabelText('Item 1 calories')).toHaveValue('1200')
     expect(screen.getByText(/1200 kcal/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     await waitFor(async () => {
@@ -51,6 +61,63 @@ describe('MealSheet', () => {
       expect(m).toMatchObject({ description: 'cheeseburger', source: 'ai', confidence: 'medium' })
       expect(m.items[0]).toMatchObject({ calories: 1200, protein: 60, fat: 64 })
       expect(m.needsEstimate).toBeUndefined()
+    })
+  })
+
+  test('typing over a scaled row saves exactly what was typed, not scaled again', async () => {
+    mockEstimate.mockResolvedValue({ ok: true, confidence: 'medium', items: [{ name: 'Burger', amount: '1', kind: 'food', calories: 600, protein: 30, carbs: 40, fat: 32, fibre: 2 }] })
+    render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Describe the meal' }), 'cheeseburger')
+    await userEvent.click(screen.getByRole('button', { name: 'Estimate' }))
+    await screen.findByDisplayValue('Burger')
+    await userEvent.click(screen.getByRole('button', { name: '2x' }))
+    const cal = screen.getByLabelText('Item 1 calories')
+    await userEvent.clear(cal)
+    await userEvent.type(cal, '900')
+    await userEvent.tab()
+    expect(screen.getByText(/900 kcal/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1x' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    await waitFor(async () => {
+      const [m] = await mealsForDate(DATE)
+      expect(m.items[0].calories).toBe(900)
+    })
+  })
+
+  test('a value typed at a fractional portion saves exactly, with no rounding drift', async () => {
+    mockEstimate.mockResolvedValue({ ok: true, confidence: 'medium', items: [{ name: 'Burger', amount: '1', kind: 'food', calories: 600, protein: 30 }] })
+    render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Describe the meal' }), 'cheeseburger')
+    await userEvent.click(screen.getByRole('button', { name: 'Estimate' }))
+    await screen.findByDisplayValue('Burger')
+    await userEvent.click(screen.getByRole('button', { name: '1.5x' }))
+    const cal = screen.getByLabelText('Item 1 calories')
+    await userEvent.clear(cal)
+    await userEvent.type(cal, '800')
+    await userEvent.tab()
+    await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    await waitFor(async () => {
+      const [m] = await mealsForDate(DATE)
+      expect(m.items[0].calories).toBe(800)
+    })
+  })
+
+  test('adjusting a saved meal to a new portion does not scale the saved meal itself', async () => {
+    await saveSavedMeal({
+      id: 's1', name: 'Eggs and toast', useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z',
+      items: [{ name: 'Eggs and toast', kind: 'food', calories: 450, protein: 28, carbs: 40, fat: 15, fibre: 3 }],
+    })
+    render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Saved' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Adjust Eggs and toast' }))
+    await userEvent.click(screen.getByRole('button', { name: '2x' }))
+    expect(screen.getByLabelText('Item 1 calories')).toHaveValue('900')
+    await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    await waitFor(async () => {
+      const [m] = await mealsForDate(DATE)
+      expect(m.items[0]).toMatchObject({ calories: 900, protein: 56, carbs: 80, fat: 30, fibre: 6 })
+      const [saved] = await listSavedMeals()
+      expect(saved.items[0]).toMatchObject({ calories: 450, protein: 28, carbs: 40, fat: 15, fibre: 3 })
     })
   })
 
@@ -139,6 +206,35 @@ describe('MealSheet', () => {
       const saved = await listSavedMeals()
       expect(saved).toHaveLength(1)
       expect(meals[0].savedMealId).toBe(saved[0].id)
+    })
+  })
+
+  test('a meal saved for later after an offline estimate can be reopened, estimated and saved once', async () => {
+    mockEstimate.mockResolvedValue({ ok: false, reason: 'offline', message: 'You are offline.' })
+    const first = render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Describe the meal' }), 'club sandwich and fries')
+    await userEvent.click(screen.getByRole('button', { name: 'Estimate' }))
+    await screen.findByText('You are offline.')
+    await userEvent.click(screen.getByRole('button', { name: 'Save for later' }))
+    let stored = await mealsForDate(DATE)
+    expect(stored).toHaveLength(1)
+    const pending = stored[0]
+    expect(pending.needsEstimate).toBe(true)
+    first.unmount()
+
+    mockEstimate.mockResolvedValue({ ok: true, confidence: 'medium', items: [{ name: 'Club sandwich', kind: 'food', calories: 750, protein: 35 }] })
+    render(<MealSheet date={DATE} editing={pending} onClose={() => {}} />)
+    expect(screen.getByRole('textbox', { name: 'Describe the meal' })).toHaveValue('club sandwich and fries')
+    await userEvent.click(screen.getByRole('button', { name: 'Estimate' }))
+    await screen.findByDisplayValue('Club sandwich')
+    await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    await waitFor(async () => {
+      stored = await mealsForDate(DATE)
+      expect(stored).toHaveLength(1)
+      expect(stored[0].id).toBe(pending.id)
+      expect(stored[0].time).toBe(pending.time)
+      expect(stored[0].items).toHaveLength(1)
+      expect(stored[0].needsEstimate).toBeUndefined()
     })
   })
 

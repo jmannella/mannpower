@@ -127,8 +127,10 @@ export function targetsFor(input: NutritionInput, date: string): Targets {
   const s = input.settings
   // Computed as of the Sunday before this week so the number holds steady Monday to Sunday.
   const sunday = addDays(weekStart(date), -1)
-  const asOf = maintenanceAt(input, sunday).source === 'none' ? date : sunday
-  const m = maintenanceAt(input, asOf)
+  const atSunday = maintenanceAt(input, sunday)
+  const none = atSunday.source === 'none'
+  const asOf = none ? date : sunday
+  const m = none ? maintenanceAt(input, date) : atSunday
   const weight = weightAt(input.days, asOf)
 
   let calories: number | undefined

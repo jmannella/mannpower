@@ -36,7 +36,16 @@ export function MealConfirm({ draft, onSave, onBack }: { draft: MealDraft; onSav
 
   const scaled = scaleItems(items, factor)
   const totals = sumItems(scaled)
-  const patch = (i: number, p: Partial<FoodItem>) => setItems((cur) => cur.map((it, j) => (j === i ? { ...it, ...p } : it)))
+  // Rows and the footer always show the scaled numbers, which are the numbers that get saved. A manual
+  // edit is a statement of what the row should read right now, so it folds the current portion into the
+  // base item and resets the portion to 1x: the value typed is the value saved, not that value times the factor.
+  const patch = (i: number, p: Partial<FoodItem>) => {
+    setItems((cur) => {
+      const base = factor === 1 ? cur : scaleItems(cur, factor)
+      return base.map((it, j) => (j === i ? { ...it, ...p } : it))
+    })
+    if (factor !== 1) setFactor(1)
+  }
   const remove = (i: number) => setItems((cur) => cur.filter((_, j) => j !== i))
   const canSave = items.length > 0 && description.trim() !== ''
 
@@ -48,7 +57,7 @@ export function MealConfirm({ draft, onSave, onBack }: { draft: MealDraft; onSav
       <label className="field"><span className="field-label">Meal</span>
         <input className="input" aria-label="Meal name" value={description} onChange={(e) => setDescription(e.target.value)} />
       </label>
-      {items.map((it, i) => (
+      {scaled.map((it, i) => (
         <div key={i} className="item-row">
           <label className="field">{i === 0 && <span className="field-label">Item</span>}
             <input className="input" aria-label={`Item ${i + 1} name`} value={it.name} onChange={(e) => patch(i, { name: e.target.value })} />
