@@ -71,8 +71,12 @@ export class GitHubContents {
     const res = await this.fetchFn(this.url(), { headers: this.headers() })
     if (res.status === 404) return null
     this.check(res, 'read')
-    const body = (await res.json()) as { content: string; sha: string }
-    return { content: decodeBase64(body.content), sha: body.sha }
+    const body = (await res.json()) as { content?: string; encoding?: string; sha: string }
+    if (body.content && body.encoding !== 'none') return { content: decodeBase64(body.content), sha: body.sha }
+    // Over 1 MB GitHub leaves content empty. The raw media type serves files up to 100 MB.
+    const raw = await this.fetchFn(this.url(), { headers: { ...this.headers(), Accept: 'application/vnd.github.raw' } })
+    this.check(raw, 'read')
+    return { content: await raw.text(), sha: body.sha }
   }
 
   async put(content: string, sha?: string): Promise<string> {

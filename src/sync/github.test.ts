@@ -45,6 +45,20 @@ describe('GitHubContents', () => {
     await expect(c.put('x')).rejects.toBeInstanceOf(SyncConflictError)
     await expect(c.put('x')).rejects.toBeInstanceOf(SyncError)
   })
+
+  test('get falls back to a raw request when the file is over 1 MB', async () => {
+    const calls: { url: string; init?: RequestInit }[] = []
+    const replies = [
+      { status: 200, ok: true, json: async () => ({ content: '', encoding: 'none', sha: 'big1' }), text: async () => '' },
+      { status: 200, ok: true, json: async () => ({}), text: async () => '{"big":true}' },
+    ]
+    const fn = (async (url: string, init?: RequestInit) => { calls.push({ url, init }); return replies.shift() as unknown as Response }) as unknown as typeof fetch
+    const c = new GitHubContents('tok', 'r/d', 'data.json', fn)
+    expect(await c.get()).toEqual({ content: '{"big":true}', sha: 'big1' })
+    expect(calls).toHaveLength(2)
+    expect((calls[1].init?.headers as Record<string, string>).Accept).toBe('application/vnd.github.raw')
+    expect((calls[1].init?.headers as Record<string, string>).Authorization).toBe('Bearer tok')
+  })
 })
 
 describe('GitHubContents default fetch', () => {

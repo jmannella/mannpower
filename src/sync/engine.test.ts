@@ -49,6 +49,7 @@ describe('syncOnce', () => {
     expect(puts[0].sha).toBeUndefined()
     expect(state.sha).toBe('sha-new')
     expect(state.status.at(-1)).toEqual(['synced', undefined])
+    expect(puts[0].content).not.toContain('\n')
   })
 
   test('pulls when remote is newer and keeps the remote sha', async () => {

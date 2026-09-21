@@ -22,7 +22,7 @@ export interface SyncDeps {
 }
 
 async function pushWithRetry(deps: SyncDeps, local: Dataset, sha: string | undefined): Promise<string> {
-  const json = JSON.stringify(local, null, 2)
+  const json = JSON.stringify(local)
   try {
     return await deps.client.put(json, sha)
   } catch (err) {
