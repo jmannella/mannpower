@@ -1,6 +1,9 @@
 import { db } from './db'
 import { onDataChange } from './changes'
-import { getSettings, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listWorkouts, listExercises } from './repo'
+import {
+  getSettings, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listWorkouts, listExercises,
+  saveMeal, saveSavedMeal, listMeals, listSavedMeals,
+} from './repo'
 import { exportDataset, importDataset, validateDataset } from './snapshot'
 
 beforeEach(async () => {
@@ -65,5 +68,25 @@ describe('snapshot', () => {
     off()
     expect((await db.meta.get('meta'))!.updatedAt > '2026-01-01').toBe(true)
     expect(seen).toHaveLength(1)
+  })
+
+  test('meals and saved meals round trip and the AI key never leaves the phone', async () => {
+    await saveSettings({ anthropicKey: 'sk-ant-secret', heightInches: 70, sex: 'male', proteinTargetOverride: 180 })
+    await saveMeal({ id: 'm1', date: '2026-09-21', time: '12:00', description: 'Lunch', source: 'quick', items: [{ name: 'Lunch', kind: 'food', calories: 700, protein: 40 }], createdAt: '', updatedAt: '' })
+    await saveSavedMeal({ id: 's1', name: 'Lunch', items: [{ name: 'Lunch', kind: 'food', calories: 700, protein: 40 }], useCount: 1, lastUsedAt: '2026-09-21T12:00:00.000Z' })
+    const ds = await exportDataset()
+    expect(ds.meals).toHaveLength(1)
+    expect(ds.savedMeals).toHaveLength(1)
+    expect(ds.settings).toMatchObject({ heightInches: 70, sex: 'male', proteinTargetOverride: 180 })
+    expect(JSON.stringify(ds)).not.toContain('sk-ant-secret')
+    expect(JSON.stringify(ds)).not.toContain('aiModel')
+
+    await db.meals.clear(); await db.savedMeals.clear()
+    const v = validateDataset(JSON.parse(JSON.stringify(ds)))
+    expect(v.ok).toBe(true)
+    if (v.ok) await importDataset(v.dataset)
+    expect((await listMeals()).map((m) => m.id)).toEqual(['m1'])
+    expect((await listSavedMeals()).map((s) => s.id)).toEqual(['s1'])
+    expect((await getSettings()).anthropicKey).toBe('sk-ant-secret')
   })
 })

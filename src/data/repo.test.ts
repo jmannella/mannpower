@@ -3,8 +3,9 @@ import { onDataChange } from './changes'
 import {
   deleteExercise, deleteWorkout, exerciseHasSets, getDay, getMeta, getSettings, getWorkoutByDate,
   listExercises, listWorkouts, modifyDay, modifyWorkoutByDate, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listPain,
+  saveMeal, mealsForDate, listMeals, deleteMeal, saveSavedMeal, listSavedMeals, deleteSavedMeal, logSavedMeal,
 } from './repo'
-import type { Workout } from '../domain/types'
+import type { MealEntry, Workout } from '../domain/types'
 
 function workout(date: string, exerciseId = 'back-squat'): Workout {
   return {
@@ -127,5 +128,52 @@ describe('repo', () => {
     expect(d?.bodyWeight).toBe(240)
     expect(d?.steps).toBe(9000)
     expect(d?.cardio).toHaveLength(1)
+  })
+})
+
+describe('meals', () => {
+  const meal = (id: string, date: string, time: string): MealEntry => ({
+    id, date, time, description: 'Lunch', source: 'quick',
+    items: [{ name: 'Lunch', kind: 'food', calories: 700, protein: 40 }], createdAt: '', updatedAt: '',
+  })
+
+  test('saveMeal stores, stamps and emits; mealsForDate sorts by time', async () => {
+    const seen: number[] = []
+    const off = onDataChange(() => seen.push(1))
+    await saveMeal(meal('b', '2026-09-21', '18:00'))
+    await saveMeal(meal('a', '2026-09-21', '08:00'))
+    await saveMeal(meal('c', '2026-09-22', '09:00'))
+    off()
+    const day = await mealsForDate('2026-09-21')
+    expect(day.map((m) => m.id)).toEqual(['a', 'b'])
+    expect(day[0].createdAt).not.toBe('')
+    expect(day[0].updatedAt).not.toBe('')
+    expect(seen).toHaveLength(3)
+    expect((await listMeals()).map((m) => m.id).pop()).toBe('c')
+  })
+
+  test('deleteMeal removes the meal', async () => {
+    await saveMeal(meal('a', '2026-09-21', '08:00'))
+    await deleteMeal('a')
+    expect(await mealsForDate('2026-09-21')).toEqual([])
+  })
+
+  test('logSavedMeal copies the items, links the saved meal and bumps its use count', async () => {
+    await saveSavedMeal({ id: 's1', name: 'Eggs and toast', items: [{ name: 'Eggs and toast', kind: 'food', calories: 450, protein: 28 }], useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z' })
+    const logged = await logSavedMeal('s1', '2026-09-21', '07:45')
+    expect(logged).toMatchObject({ date: '2026-09-21', time: '07:45', description: 'Eggs and toast', source: 'saved', savedMealId: 's1' })
+    expect(logged.items[0].calories).toBe(450)
+    const saved = await listSavedMeals()
+    expect(saved[0].useCount).toBe(2)
+    expect(saved[0].lastUsedAt > '2026-09-01').toBe(true)
+    await deleteSavedMeal('s1')
+    expect(await listSavedMeals()).toEqual([])
+  })
+
+  test('saving the AI key or model does not touch meta', async () => {
+    const before = (await getMeta()).updatedAt
+    await saveSettings({ anthropicKey: 'sk-test', aiModel: 'claude-haiku-4-5' })
+    expect((await getMeta()).updatedAt).toBe(before)
+    expect((await getSettings()).anthropicKey).toBe('sk-test')
   })
 })

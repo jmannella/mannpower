@@ -1,9 +1,10 @@
 import { db } from './db'
 import { emitDataChange } from './changes'
 import { nowISO } from '../domain/dates'
+import { newId } from '../domain/ids'
 import { BUILTIN_EXERCISES } from '../library/exercises'
 import {
-  DEFAULT_SETTINGS, type DayRecord, type Exercise, type Meta, type PainEntry, type Settings, type Workout,
+  DEFAULT_SETTINGS, type DayRecord, type Exercise, type MealEntry, type Meta, type PainEntry, type SavedMeal, type Settings, type Workout,
 } from '../domain/types'
 
 async function afterWrite(): Promise<void> {
@@ -114,6 +115,60 @@ export async function deletePain(id: string): Promise<void> {
   await afterWrite()
 }
 
+// Meals
+export async function listMeals(): Promise<MealEntry[]> {
+  return db.meals.orderBy('date').toArray()
+}
+
+export async function mealsForDate(date: string): Promise<MealEntry[]> {
+  const meals = await db.meals.where('date').equals(date).toArray()
+  return meals.sort((a, b) => a.time.localeCompare(b.time))
+}
+
+export async function saveMeal(m: MealEntry): Promise<void> {
+  const now = nowISO()
+  await db.meals.put({ ...m, createdAt: m.createdAt || now, updatedAt: now })
+  await afterWrite()
+}
+
+export async function deleteMeal(id: string): Promise<void> {
+  await db.meals.delete(id)
+  await afterWrite()
+}
+
+export async function listSavedMeals(): Promise<SavedMeal[]> {
+  return db.savedMeals.orderBy('lastUsedAt').reverse().toArray()
+}
+
+export async function saveSavedMeal(s: SavedMeal): Promise<void> {
+  await db.savedMeals.put(s)
+  await afterWrite()
+}
+
+export async function deleteSavedMeal(id: string): Promise<void> {
+  await db.savedMeals.delete(id)
+  await afterWrite()
+}
+
+/** Log a saved meal on a date and bump its use count in one transaction. */
+export async function logSavedMeal(savedId: string, date: string, time: string): Promise<MealEntry> {
+  const meal = await db.transaction('rw', [db.meals, db.savedMeals, db.meta], async () => {
+    const saved = await db.savedMeals.get(savedId)
+    if (!saved) throw new Error('That saved meal no longer exists.')
+    const now = nowISO()
+    const entry: MealEntry = {
+      id: newId(), date, time, description: saved.name, items: saved.items.map((i) => ({ ...i })),
+      source: 'saved', savedMealId: saved.id, createdAt: now, updatedAt: now,
+    }
+    await db.meals.put(entry)
+    await db.savedMeals.put({ ...saved, useCount: saved.useCount + 1, lastUsedAt: now })
+    await touchMeta()
+    return entry
+  })
+  emitDataChange()
+  return meal
+}
+
 // Settings and meta
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get('settings')
@@ -121,7 +176,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 /** Sync bookkeeping fields do not touch meta, so a status update never triggers another sync. */
-const SYNC_ONLY_KEYS: (keyof Settings)[] = ['lastSyncedAt', 'lastSyncSha', 'syncStatus', 'lastSyncError', 'githubToken', 'dataRepo']
+const SYNC_ONLY_KEYS: (keyof Settings)[] = ['lastSyncedAt', 'lastSyncSha', 'syncStatus', 'lastSyncError', 'githubToken', 'dataRepo', 'anthropicKey', 'aiModel']
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   const touchesData = Object.keys(patch).some((k) => !SYNC_ONLY_KEYS.includes(k as keyof Settings))

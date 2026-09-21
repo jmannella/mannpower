@@ -52,7 +52,7 @@ export async function syncOnce(deps: SyncDeps): Promise<SyncDecision> {
     // A device that has never synced (no stored sha) must not push and overwrite an existing
     // remote backup just because its clock-stamped meta.updatedAt happens to look newer.
     if (decision === 'push' && remoteDs && (await deps.getSha()) === undefined
-      && remoteDs.workouts.length + remoteDs.days.length + remoteDs.pain.length > 0) {
+      && remoteDs.workouts.length + remoteDs.days.length + remoteDs.pain.length + remoteDs.meals.length > 0) {
       decision = 'pull'
     }
     if (decision === 'pull' && remoteDs && remote) {
