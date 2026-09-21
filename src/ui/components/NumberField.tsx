@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 interface Props {
   label?: string
+  ariaLabel?: string
   value?: number
   onCommit: (value?: number) => void
   placeholder?: string
@@ -14,7 +15,7 @@ interface Props {
 }
 
 /** Numeric input that commits on blur or Enter. Blank clears. Invalid or negative input restores the previous value. */
-export function NumberField({ label, value, onCommit, placeholder, suffix, step, allowDecimal = true, autoFocus, big, className }: Props) {
+export function NumberField({ label, ariaLabel, value, onCommit, placeholder, suffix, step, allowDecimal = true, autoFocus, big, className }: Props) {
   const [text, setText] = useState(value === undefined ? '' : String(value))
   useEffect(() => { setText(value === undefined ? '' : String(value)) }, [value])
 
@@ -42,7 +43,7 @@ export function NumberField({ label, value, onCommit, placeholder, suffix, step,
       placeholder={placeholder}
       step={step}
       autoFocus={autoFocus}
-      aria-label={label}
+      aria-label={ariaLabel ?? label}
       onChange={(e) => setText(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}

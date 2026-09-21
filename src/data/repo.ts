@@ -125,10 +125,19 @@ export async function mealsForDate(date: string): Promise<MealEntry[]> {
   return meals.sort((a, b) => a.time.localeCompare(b.time))
 }
 
+/**
+ * Writes the meal and touches meta in one transaction, the same guarantee saveDay and saveWorkout
+ * get from modifyDay and modifyWorkoutByDate. Two separate writes here let another reader see the
+ * meal before meta (and its own change signal) settle, so a caller that awaits saveMeal and then
+ * acts on that signal can run ahead of a concurrent read.
+ */
 export async function saveMeal(m: MealEntry): Promise<void> {
   const now = nowISO()
-  await db.meals.put({ ...m, createdAt: m.createdAt || now, updatedAt: now })
-  await afterWrite()
+  await db.transaction('rw', [db.meals, db.meta], async () => {
+    await db.meals.put({ ...m, createdAt: m.createdAt || now, updatedAt: now })
+    await touchMeta()
+  })
+  emitDataChange()
 }
 
 export async function deleteMeal(id: string): Promise<void> {
