@@ -1,7 +1,7 @@
 # Mannpower Nutrition Design
 
 Date: 2026-09-21
-Status: awaiting review
+Status: approved
 
 ## Purpose
 
