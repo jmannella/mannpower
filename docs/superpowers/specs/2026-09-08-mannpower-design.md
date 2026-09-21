@@ -49,7 +49,7 @@ Modules, each independently testable:
 
 ### Sync
 
-- After any write, a debounced (5 second) push serializes the whole dataset and PUTs `data.json` to the private repo using a fine-grained personal access token with Contents read and write on that one repo. The token is stored in the app settings (IndexedDB) on the phone only.
+- After any write, a debounced push (2 minutes after the last change, and never more than 10 minutes after the first) serializes the whole dataset and PUTs `data.json` to the private repo using a fine-grained personal access token with Contents read and write on that one repo. The token is stored in the app settings (IndexedDB) on the phone only.
 - On app open and when the browser regains connectivity, the app GETs `data.json`. If the remote `meta.updatedAt` is newer than local, remote replaces local. If local is newer, local is pushed. Equal means nothing to do. One phone, so last-write-wins by timestamp is sufficient.
 - The Contents API needs the current file SHA for an update. The app keeps the last known SHA and refetches on a 409 or 422 conflict, then retries once.
 - Sync never blocks logging. Failures set a status of `pending` or `error` shown as a dot in Settings with the last error message. An authentication failure (401 or 403) shows a one-time banner asking to check the token.

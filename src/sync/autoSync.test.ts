@@ -17,6 +17,38 @@ describe('createAutoSync', () => {
     auto.stop()
   })
 
+  test('waits two minutes by default so a run of sets becomes one push', async () => {
+    const run = vi.fn(async () => {})
+    let trigger: () => void = () => {}
+    const auto = createAutoSync({ run, subscribe: (cb) => { trigger = cb; return () => {} }, target: new EventTarget() })
+    trigger()
+    await vi.advanceTimersByTimeAsync(119_999)
+    expect(run).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
+    expect(run).toHaveBeenCalledTimes(1)
+    auto.stop()
+  })
+
+  test('steady changes cannot postpone a run past the maximum wait', async () => {
+    const run = vi.fn(async () => {})
+    let trigger: () => void = () => {}
+    const auto = createAutoSync({ run, delayMs: 100, maxWaitMs: 250, subscribe: (cb) => { trigger = cb; return () => {} }, target: new EventTarget() })
+    trigger() // t = 0
+    await vi.advanceTimersByTimeAsync(90)
+    trigger() // t = 90
+    await vi.advanceTimersByTimeAsync(90)
+    trigger() // t = 180, debounce alone would now wait until 280
+    await vi.advanceTimersByTimeAsync(69)
+    expect(run).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1) // t = 250
+    expect(run).toHaveBeenCalledTimes(1)
+    // The next change starts a fresh window.
+    trigger()
+    await vi.advanceTimersByTimeAsync(100)
+    expect(run).toHaveBeenCalledTimes(2)
+    auto.stop()
+  })
+
   test('a change during a run queues one more run', async () => {
     let resolveFirst: () => void = () => {}
     const run = vi.fn()
