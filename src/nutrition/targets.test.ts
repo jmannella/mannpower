@@ -55,6 +55,32 @@ describe('complete days', () => {
     const rows = dailyIntake(input({ meals, settings: { ...settings, sex: undefined } }), '2026-09-14', '2026-09-20')
     expect(rows.map((r) => r.complete)).toEqual([true, false])
   })
+
+  test('threshold is each date\'s own formula maintenance, not the window end', () => {
+    const start = '2026-01-01'
+    const early = '2026-01-14'
+    const late = '2026-02-03'
+    const highDays = eachDay(start, '2026-01-20').map((d) => mkDay(d, { bodyWeight: 300, steps: 12000 }))
+    const lowDays = eachDay('2026-01-21', late).map((d) => mkDay(d, { bodyWeight: 180, steps: 3000 }))
+    const meals = [mkMeal(early, 1500, 100), mkMeal(late, 1500, 100)]
+    const data = input({ days: [...highDays, ...lowDays], meals })
+
+    // Early day's own formula: weight 300 (7 day average), age 47, activity factor 1.6 (12000 step average, no sessions).
+    // bmr(male, 300, 70, 47) = 10 * 300 * 0.45359237 + 6.25 * 70 * 2.54 - 5 * 47 + 5 = 2242.03.
+    // Formula 2242.03 * 1.6 = 3587.24, half 1793.62. The 1500 calorie meal falls short, so the early day is not complete.
+    //
+    // Late day's own formula: weight 180, age 47, activity factor 1.3 (3000 step average).
+    // bmr(male, 180, 70, 47) = 10 * 180 * 0.45359237 + 6.25 * 70 * 2.54 - 5 * 47 + 5 = 1697.72.
+    // Formula 1697.72 * 1.3 = 2207.03, half 1103.52. The same 1500 calorie meal clears that, so the late day is complete.
+    const rows = dailyIntake(data, start, late)
+    expect(rows.find((r) => r.date === early)?.complete).toBe(false)
+    expect(rows.find((r) => r.date === late)?.complete).toBe(true)
+
+    // A past day must classify the same way no matter which window end it is viewed through.
+    const throughEarly = dailyIntake(data, start, early).find((r) => r.date === early)?.complete
+    const throughLate = dailyIntake(data, start, late).find((r) => r.date === early)?.complete
+    expect(throughEarly).toBe(throughLate)
+  })
 })
 
 describe('measured maintenance', () => {

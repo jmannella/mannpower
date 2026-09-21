@@ -67,19 +67,21 @@ export interface DayIntake {
 }
 
 /**
- * One row per date that has a meal. A day is complete when it reaches half of the formula maintenance
- * (a flat 1000 when there is no formula value) and has no meal waiting for an estimate. The formula value is
- * used on purpose: the measured value depends on complete days, so using it here would be circular.
+ * One row per date that has a meal. A day is complete when it reaches half of that date's own formula
+ * maintenance (a flat 1000 on a date with no formula value) and has no meal waiting for an estimate. The
+ * threshold is computed per date, not anchored to the window end, so a past day classifies the same way no
+ * matter which window it is viewed through. The formula value is used on purpose: the measured value depends
+ * on complete days, so using it here would be circular.
  */
 export function dailyIntake(input: NutritionInput, from: string, to: string): DayIntake[] {
-  const formula = formulaMaintenance(input, to)
-  const threshold = formula === undefined ? 1000 : formula / 2
   const byDate = new Map<string, MealEntry[]>()
   for (const m of input.meals) {
     if (!inRange(m.date, from, to)) continue
     byDate.set(m.date, [...(byDate.get(m.date) ?? []), m])
   }
   return [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, meals]) => {
+    const formula = formulaMaintenance(input, date)
+    const threshold = formula === undefined ? 1000 : formula / 2
     const t = sumItems(meals.flatMap((m) => m.items))
     const pending = meals.some((m) => m.needsEstimate)
     return { date, calories: t.calories, protein: t.protein, fibre: t.fibre, pending, complete: !pending && t.calories >= threshold }
