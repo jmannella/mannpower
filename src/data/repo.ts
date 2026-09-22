@@ -159,6 +159,14 @@ export async function deleteSavedMeal(id: string): Promise<void> {
   await afterWrite()
 }
 
+/** Rename a saved meal. A blank name or an unknown id is a no-op. */
+export async function renameSavedMeal(id: string, name: string): Promise<void> {
+  const trimmed = name.trim()
+  if (!trimmed) return
+  const changed = await db.savedMeals.update(id, { name: trimmed })
+  if (changed) await afterWrite()
+}
+
 /** Log a saved meal on a date and bump its use count in one transaction. */
 export async function logSavedMeal(savedId: string, date: string, time: string): Promise<MealEntry> {
   const meal = await db.transaction('rw', [db.meals, db.savedMeals, db.meta], async () => {

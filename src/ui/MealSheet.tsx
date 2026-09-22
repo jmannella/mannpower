@@ -4,7 +4,7 @@ import { Chip } from './components/Chip'
 import { NumberField } from './components/NumberField'
 import { MealConfirm, type ConfirmedMeal, type MealDraft } from './MealConfirm'
 import { useMeals, useSavedMeals } from './hooks'
-import { deleteSavedMeal, logSavedMeal, saveMeal, saveSavedMeal } from '../data/repo'
+import { deleteSavedMeal, logSavedMeal, renameSavedMeal, saveMeal, saveSavedMeal } from '../data/repo'
 import { estimateMeal } from '../nutrition/estimate'
 import { sumItems } from '../nutrition/totals'
 import { newId } from '../domain/ids'
@@ -54,9 +54,11 @@ export function MealSheet({ date, editing, onClose }: { date: string; editing?: 
   const recents = useMemo(() => {
     const cutoff = addDays(date, -14)
     const savedNames = new Set(saved.map((s) => s.name.trim().toLowerCase()))
+    const savedIds = new Set(saved.map((s) => s.id))
     const seen = new Map<string, MealEntry>()
     for (const m of [...meals].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))) {
       if (m.needsEstimate || m.items.length === 0 || m.date < cutoff) continue
+      if (m.savedMealId && savedIds.has(m.savedMealId)) continue
       const key = m.description.trim().toLowerCase()
       if (savedNames.has(key) || seen.has(key)) continue
       seen.set(key, m)
@@ -86,7 +88,7 @@ export function MealSheet({ date, editing, onClose }: { date: string; editing?: 
     let savedMealId = draft.savedMealId
     if (c.saveAsSaved) {
       savedMealId = newId()
-      await saveSavedMeal({ id: savedMealId, name: c.description, items: c.items, useCount: 1, lastUsedAt: nowISO() })
+      await saveSavedMeal({ id: savedMealId, name: c.savedName, items: c.items, useCount: 1, lastUsedAt: nowISO() })
     }
     await saveMeal({
       id: draft.id ?? newId(), date: mealDate, time: c.time, description: c.description, items: c.items,
@@ -96,6 +98,10 @@ export function MealSheet({ date, editing, onClose }: { date: string; editing?: 
   }
 
   const logSaved = async (id: string) => { await logSavedMeal(id, date, nowTime()); onClose() }
+  const renameSaved = (id: string, name: string) => {
+    const next = prompt('Rename saved meal', name)?.trim()
+    if (next && next !== name) void renameSavedMeal(id, next)
+  }
   const logRecent = async (m: MealEntry) => {
     await saveMeal({ ...m, id: newId(), date, time: nowTime(), items: m.items.map((i) => ({ ...i })), createdAt: '', updatedAt: '' })
     onClose()
@@ -156,6 +162,7 @@ export function MealSheet({ date, editing, onClose }: { date: string; editing?: 
                   <strong>{s.name}</strong><div className="muted">{summary(s.items)}</div>
                 </button>
                 <button type="button" className="btn btn-sm" aria-label={`Adjust ${s.name}`} onClick={() => setDraft({ description: s.name, items: s.items, source: 'saved', savedMealId: s.id })}>Adjust</button>
+                <button type="button" className="icon-btn" aria-label={`Rename ${s.name}`} onClick={() => renameSaved(s.id, s.name)}>✎</button>
                 <button type="button" className="icon-btn" aria-label={`Remove saved meal ${s.name}`} onClick={() => { if (confirm(`Remove ${s.name} from saved meals? Meals already logged stay.`)) void deleteSavedMeal(s.id) }}>×</button>
               </div>
             ))}

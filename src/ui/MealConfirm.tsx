@@ -22,6 +22,8 @@ export interface ConfirmedMeal {
   items: FoodItem[]
   time: string
   saveAsSaved: boolean
+  /** Name for the saved meal when saveAsSaved is set; falls back to the description when blank. */
+  savedName: string
 }
 
 const FACTORS = [0.5, 1, 1.5, 2]
@@ -33,6 +35,7 @@ export function MealConfirm({ draft, onSave, onBack }: { draft: MealDraft; onSav
   const [factor, setFactor] = useState(1)
   const [time, setTime] = useState(draft.time ?? nowTime())
   const [saveAsSaved, setSaveAsSaved] = useState(false)
+  const [savedName, setSavedName] = useState(draft.description)
 
   const scaled = scaleItems(items, factor)
   const totals = sumItems(scaled)
@@ -83,9 +86,14 @@ export function MealConfirm({ draft, onSave, onBack }: { draft: MealDraft; onSav
         <input type="checkbox" checked={saveAsSaved} onChange={(e) => setSaveAsSaved(e.target.checked)} />
         <span>Also keep as a saved meal</span>
       </label>
+      {saveAsSaved && (
+        <label className="field"><span className="field-label">Saved meal name</span>
+          <input className="input" aria-label="Saved meal name" value={savedName} onChange={(e) => setSavedName(e.target.value)} placeholder={description.trim() || 'Name'} />
+        </label>
+      )}
       <div className="grid-2">
         <button type="button" className="btn" onClick={onBack}>Back</button>
-        <button type="button" className="btn btn-primary" disabled={!canSave} onClick={() => onSave({ description: description.trim(), items: scaled, time, saveAsSaved })}>Save meal</button>
+        <button type="button" className="btn btn-primary" disabled={!canSave} onClick={() => onSave({ description: description.trim(), items: scaled, time, saveAsSaved, savedName: savedName.trim() || description.trim() })}>Save meal</button>
       </div>
     </div>
   )

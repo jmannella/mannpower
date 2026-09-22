@@ -3,7 +3,7 @@ import { onDataChange } from './changes'
 import {
   deleteExercise, deleteWorkout, exerciseHasSets, getDay, getMeta, getSettings, getWorkoutByDate,
   listExercises, listWorkouts, modifyDay, modifyWorkoutByDate, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listPain,
-  saveMeal, mealsForDate, listMeals, deleteMeal, saveSavedMeal, listSavedMeals, deleteSavedMeal, logSavedMeal,
+  saveMeal, mealsForDate, listMeals, deleteMeal, saveSavedMeal, listSavedMeals, deleteSavedMeal, logSavedMeal, renameSavedMeal,
 } from './repo'
 import type { MealEntry, Workout } from '../domain/types'
 
@@ -168,6 +168,21 @@ describe('meals', () => {
     expect(saved[0].lastUsedAt > '2026-09-01').toBe(true)
     await deleteSavedMeal('s1')
     expect(await listSavedMeals()).toEqual([])
+  })
+
+  test('renameSavedMeal changes only the name and keeps the items and use count', async () => {
+    await saveSavedMeal({ id: 's1', name: 'Eggs and toast', items: [{ name: 'Eggs and toast', kind: 'food', calories: 450, protein: 28 }], useCount: 3, lastUsedAt: '2026-09-01T00:00:00.000Z' })
+    await renameSavedMeal('s1', '  Big breakfast  ')
+    const [saved] = await listSavedMeals()
+    expect(saved).toMatchObject({ id: 's1', name: 'Big breakfast', useCount: 3, lastUsedAt: '2026-09-01T00:00:00.000Z' })
+    expect(saved.items[0].name).toBe('Eggs and toast')
+  })
+
+  test('renameSavedMeal ignores a blank name and a missing meal', async () => {
+    await saveSavedMeal({ id: 's1', name: 'Eggs and toast', items: [{ name: 'Eggs and toast', kind: 'food', calories: 450, protein: 28 }], useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z' })
+    await renameSavedMeal('s1', '   ')
+    await renameSavedMeal('nope', 'Anything')
+    expect((await listSavedMeals()).map((s) => s.name)).toEqual(['Eggs and toast'])
   })
 
   test('saving the AI key or model does not touch meta', async () => {

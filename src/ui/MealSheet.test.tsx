@@ -188,6 +188,15 @@ describe('MealSheet', () => {
     expect(screen.getByRole('button', { name: 'Saved' })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  test('a logged meal linked to a saved meal under a different name stays out of Recent', async () => {
+    await saveSavedMeal({ id: 's1', name: 'Big breakfast', items: [{ name: 'Two eggs, toast, coffee', kind: 'food', calories: 450, protein: 28 }], useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z' })
+    await saveMeal({ id: 'old', date: '2026-09-18', time: '08:00', description: 'Two eggs, toast, coffee', source: 'quick', savedMealId: 's1', items: [{ name: 'Two eggs, toast, coffee', kind: 'food', calories: 450, protein: 28 }], createdAt: '', updatedAt: '' })
+    render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Saved' }))
+    expect(await screen.findByRole('button', { name: 'Log Big breakfast' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Log Two eggs, toast, coffee' })).not.toBeInTheDocument()
+  })
+
   test('editing opens the confirm view, keeps the id and can also keep a saved meal', async () => {
     const meal = { id: 'm1', date: DATE, time: '12:15', description: 'Lunch', source: 'quick' as const, items: [{ name: 'Lunch', kind: 'food' as const, calories: 700, protein: 40 }], createdAt: '2026-09-21T16:15:00.000Z', updatedAt: '' }
     await saveMeal(meal)
@@ -196,17 +205,45 @@ describe('MealSheet', () => {
     await userEvent.clear(cal)
     await userEvent.type(cal, '800')
     await userEvent.tab()
+    expect(screen.queryByRole('textbox', { name: 'Saved meal name' })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('checkbox', { name: 'Also keep as a saved meal' }))
+    const nameBox = screen.getByRole('textbox', { name: 'Saved meal name' })
+    expect(nameBox).toHaveValue('Lunch')
+    await userEvent.clear(nameBox)
+    await userEvent.type(nameBox, 'Work lunch')
     await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     await waitFor(async () => {
       const meals = await mealsForDate(DATE)
       expect(meals).toHaveLength(1)
-      expect(meals[0]).toMatchObject({ id: 'm1', time: '12:15' })
+      expect(meals[0]).toMatchObject({ id: 'm1', time: '12:15', description: 'Lunch' })
       expect(meals[0].items[0].calories).toBe(800)
       const saved = await listSavedMeals()
       expect(saved).toHaveLength(1)
+      expect(saved[0].name).toBe('Work lunch')
       expect(meals[0].savedMealId).toBe(saved[0].id)
     })
+  })
+
+  test('a blank saved meal name falls back to the meal description', async () => {
+    const meal = { id: 'm1', date: DATE, time: '12:15', description: 'Lunch', source: 'quick' as const, items: [{ name: 'Lunch', kind: 'food' as const, calories: 700, protein: 40 }], createdAt: '2026-09-21T16:15:00.000Z', updatedAt: '' }
+    await saveMeal(meal)
+    render(<MealSheet date={DATE} editing={meal} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Also keep as a saved meal' }))
+    await userEvent.clear(screen.getByRole('textbox', { name: 'Saved meal name' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    await waitFor(async () => expect((await listSavedMeals()).map((s) => s.name)).toEqual(['Lunch']))
+  })
+
+  test('a saved meal can be renamed from the Saved list', async () => {
+    await saveSavedMeal({ id: 's1', name: 'Eggs and toast', items: [{ name: 'Eggs and toast', kind: 'food', calories: 450, protein: 28 }], useCount: 1, lastUsedAt: '2026-09-01T00:00:00.000Z' })
+    const ask = vi.spyOn(window, 'prompt').mockReturnValue('Big breakfast')
+    render(<MealSheet date={DATE} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Saved' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Rename Eggs and toast' }))
+    expect(ask).toHaveBeenCalledWith('Rename saved meal', 'Eggs and toast')
+    await waitFor(async () => expect((await listSavedMeals()).map((s) => s.name)).toEqual(['Big breakfast']))
+    expect(await screen.findByRole('button', { name: 'Log Big breakfast' })).toBeInTheDocument()
+    ask.mockRestore()
   })
 
   test('a meal saved for later after an offline estimate can be reopened, estimated and saved once', async () => {
