@@ -44,6 +44,11 @@ export function weekEnd(date: string): string {
   return addDays(weekStart(date), 6)
 }
 
+/** The most recent Sunday on or before date: the end of the last completed week, or date itself on a Sunday. */
+export function lastSunday(date: string): string {
+  return parseISO(date).getDay() === 0 ? date : addDays(weekStart(date), -1)
+}
+
 export function daysBetween(from: string, to: string): number {
   return Math.round((parseISO(to).getTime() - parseISO(from).getTime()) / MS_PER_DAY)
 }

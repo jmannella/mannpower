@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { addDays, lastSunday, todayISO } from '../src/domain/dates'
 
 function run(args: string[], env: Record<string, string> = {}) {
   try {
@@ -31,6 +32,13 @@ describe('report script', () => {
     const r = run(['--week', '2026-09-13'])
     expect(r.code).toBe(1)
     expect(r.err).toContain('MANNPOWER_TOKEN')
+  })
+
+  test('--week last reports the most recent completed week whatever day it runs', () => {
+    const end = lastSunday(todayISO())
+    const r = run(['--file', 'scripts/fixtures/week.json', '--week', 'last'])
+    expect(r.code).toBe(0)
+    expect(r.out).toContain(`# Mannpower weekly digest, ${addDays(end, -6)} to ${end}`)
   })
 
   test('a --week flag without a value is rejected', () => {

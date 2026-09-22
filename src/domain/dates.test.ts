@@ -1,6 +1,6 @@
 import {
   addDays, daysBetween, eachDay, formatShort, formatWeekLabel, inRange,
-  nowTime, parseISO, toISO, todayISO, weekEnd, weekStart,
+  lastSunday, nowTime, parseISO, toISO, todayISO, weekEnd, weekStart,
 } from './dates'
 
 describe('dates', () => {
@@ -50,5 +50,12 @@ describe('dates', () => {
   test('nowTime is zero padded local HH:MM', () => {
     expect(nowTime(new Date(2026, 8, 21, 7, 5))).toBe('07:05')
     expect(nowTime(new Date(2026, 8, 21, 20, 30))).toBe('20:30')
+  })
+
+  test('lastSunday is today on a Sunday and the previous Sunday otherwise', () => {
+    expect(lastSunday('2026-09-20')).toBe('2026-09-20')
+    expect(lastSunday('2026-09-21')).toBe('2026-09-20')
+    expect(lastSunday('2026-09-26')).toBe('2026-09-20')
+    expect(lastSunday('2026-09-27')).toBe('2026-09-27')
   })
 })

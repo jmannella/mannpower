@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { GitHubContents } from '../src/sync/github'
 import { validateDataset } from '../src/domain/validate'
 import { digestMarkdown, weeklyDigest } from '../src/stats/digest'
-import { todayISO, weekEnd } from '../src/domain/dates'
+import { lastSunday, todayISO, weekEnd } from '../src/domain/dates'
 
 class ReportError extends Error {}
 
@@ -34,9 +34,15 @@ async function loadRaw(): Promise<string> {
   return remote.content
 }
 
+/** --week takes a Sunday date, or `last` for the most recent Sunday on or before today. The scheduled run uses `last` so a run that slips past Sunday still reports the week that just ended instead of the empty new one. */
+function resolveWeek(weekArg: string | undefined): string {
+  if (weekArg === undefined) return defaultWeekEnd()
+  if (weekArg === 'last') return lastSunday(todayISO())
+  return weekArg
+}
+
 async function main(): Promise<void> {
-  const weekArg = arg('--week')
-  const weekEndDate = weekArg === undefined ? defaultWeekEnd() : weekArg
+  const weekEndDate = resolveWeek(arg('--week'))
   if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEndDate)) fail(`Bad --week value: ${weekEndDate}`)
   let parsed: unknown
   try {
