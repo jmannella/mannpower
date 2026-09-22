@@ -44,14 +44,31 @@ describe('Food', () => {
     expect(within(note).getByRole('link', { name: /Settings/ })).toBeInTheDocument()
   })
 
-  test('delete and star', async () => {
+  test('delete and star, with the star asking for a name', async () => {
     await saveMeal(meal('a', '08:00', 'Breakfast', 400, 30))
+    const ask = vi.spyOn(window, 'prompt').mockReturnValue('Big breakfast')
     renderFood()
     await userEvent.click(await screen.findByRole('button', { name: 'Save Breakfast as a saved meal' }))
-    await waitFor(async () => expect((await listSavedMeals()).map((s) => s.name)).toEqual(['Breakfast']))
+    expect(ask).toHaveBeenCalledWith('Name this saved meal', 'Breakfast')
+    await waitFor(async () => expect((await listSavedMeals()).map((s) => s.name)).toEqual(['Big breakfast']))
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Save Breakfast as a saved meal' })).not.toBeInTheDocument())
+    expect(screen.getByText('Breakfast')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Delete Breakfast' }))
     await waitFor(async () => expect(await mealsForDate(today)).toEqual([]))
+    ask.mockRestore()
+  })
+
+  test('a blank name on star keeps the description and cancel saves nothing', async () => {
+    await saveMeal(meal('a', '08:00', 'Breakfast', 400, 30))
+    const ask = vi.spyOn(window, 'prompt').mockReturnValueOnce(null).mockReturnValueOnce('   ')
+    renderFood()
+    await userEvent.click(await screen.findByRole('button', { name: 'Save Breakfast as a saved meal' }))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(await listSavedMeals()).toEqual([])
+    expect(screen.getByRole('button', { name: 'Save Breakfast as a saved meal' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Save Breakfast as a saved meal' }))
+    await waitFor(async () => expect((await listSavedMeals()).map((s) => s.name)).toEqual(['Breakfast']))
+    ask.mockRestore()
   })
 
   test('a meal waiting for an estimate is flagged and reopens in Describe', async () => {

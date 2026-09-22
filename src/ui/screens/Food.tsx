@@ -45,8 +45,10 @@ export default function Food() {
   const targets = settings ? targetsFor({ meals, days, workouts, settings }, date) : undefined
 
   const star = async (m: MealEntry) => {
+    const answer = prompt('Name this saved meal', m.description)
+    if (answer === null) return
     const id = newId()
-    await saveSavedMeal({ id, name: m.description, items: m.items.map((i) => ({ ...i })), useCount: 1, lastUsedAt: nowISO() })
+    await saveSavedMeal({ id, name: answer.trim() || m.description, items: m.items.map((i) => ({ ...i })), useCount: 1, lastUsedAt: nowISO() })
     await saveMeal({ ...m, savedMealId: id })
   }
 
