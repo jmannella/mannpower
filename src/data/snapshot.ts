@@ -21,6 +21,8 @@ export async function exportDataset(): Promise<Dataset> {
     sex: settings.sex,
     calorieTargetOverride: settings.calorieTargetOverride,
     proteinTargetOverride: settings.proteinTargetOverride,
+    supplements: settings.supplements,
+    waterGoalGlasses: settings.waterGoalGlasses,
   }
   return { meta: { schemaVersion: 1, updatedAt: meta.updatedAt }, exercises, workouts, days, pain, meals, savedMeals, settings: synced }
 }
