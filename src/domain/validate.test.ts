@@ -74,3 +74,68 @@ describe('validateDataset nutrition', () => {
     expect(isFoodItem({ name: 'Dinner', kind: 'food', calories: Number.NaN, protein: 55 })).toBe(false)
   })
 })
+
+describe('check in fields', () => {
+  test('keeps every new day field when they are in range', () => {
+    const ds = base()
+    ds.days = [{ date: '2026-09-23', cardio: [], updatedAt: '', sleepScore: 81, sleepHours: 7.2, readiness: 74, restingHr: 52, waterGlasses: 6, waist: 38.5, supplementsTaken: ['im8'] }] as never
+    const r = validateDataset(ds)
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.dataset.days[0].sleepScore).toBe(81)
+    expect(r.dataset.days[0].waist).toBe(38.5)
+    expect(r.dataset.days[0].supplementsTaken).toEqual(['im8'])
+  })
+
+  test.each([
+    ['sleepScore', 101],
+    ['readiness', -1],
+    ['sleepHours', 25],
+    ['restingHr', 20],
+    ['waterGlasses', 41],
+    ['waist', 19],
+  ])('rejects %s out of range', (field, value) => {
+    const ds = base()
+    ds.days = [{ date: '2026-09-23', cardio: [], updatedAt: '', [field]: value }] as never
+    const r = validateDataset(ds)
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors[0]).toContain('days[0]')
+  })
+
+  test('rejects a supplementsTaken that is not an array of strings', () => {
+    const ds = base()
+    ds.days = [{ date: '2026-09-23', cardio: [], updatedAt: '', supplementsTaken: [1] }] as never
+    expect(validateDataset(ds).ok).toBe(false)
+  })
+
+  test('defaults supplements to IM8 when the settings have none', () => {
+    const r = validateDataset(base())
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.dataset.settings.supplements).toEqual([{ id: 'im8', name: 'IM8 Daily Essentials', active: true }])
+  })
+
+  test('keeps a supplement list that is already there and drops malformed entries', () => {
+    const ds = base()
+    ds.settings = { ...ds.settings, supplements: [{ id: 'cr', name: 'Creatine', active: true, addedOn: '2026-09-01' }, { id: 5 }] } as never
+    const r = validateDataset(ds)
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.dataset.settings.supplements).toEqual([{ id: 'cr', name: 'Creatine', active: true, addedOn: '2026-09-01' }])
+  })
+
+  test('does not resurrect IM8 when the list was deliberately emptied', () => {
+    const ds = base()
+    ds.settings = { ...ds.settings, supplements: [] } as never
+    const r = validateDataset(ds)
+    expect(r.ok && r.dataset.settings.supplements).toEqual([])
+  })
+
+  test('clamps an out of range water goal to undefined', () => {
+    const ds = base()
+    ds.settings = { ...ds.settings, waterGoalGlasses: 0 } as never
+    const r = validateDataset(ds)
+    expect(r.ok && r.dataset.settings.waterGoalGlasses).toBeUndefined()
+  })
+})
