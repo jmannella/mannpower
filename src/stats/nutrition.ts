@@ -34,6 +34,9 @@ export interface NutritionWeek {
   drinkSharePct?: number
   alcoholSharePct?: number
   lateSharePct?: number
+  /** Alcohol items logged this week, counted individually. */
+  alcoholDrinks: number
+  alcoholCalories: number
   /** Standard deviation of complete day calories. */
   calorieSpread?: number
   month?: { completeDays: number; maintenanceStart?: number; maintenanceEnd?: number }
@@ -51,6 +54,7 @@ export function nutritionWeek(input: NutritionInput, start: string, end: string,
   const inWeek = input.meals.filter((m) => inRange(m.date, start, end))
   const complete = dailyIntake(input, start, end).filter((d) => d.complete)
   const maintenance = maintenanceAt(input, end)
+  const alcoholItems = inWeek.filter((m) => !m.needsEstimate).flatMap((m) => m.items).filter((i) => i.kind === 'alcohol')
   const out: NutritionWeek = {
     mealsLogged: inWeek.length,
     pendingMeals: inWeek.filter((m) => m.needsEstimate).length,
@@ -58,6 +62,8 @@ export function nutritionWeek(input: NutritionInput, start: string, end: string,
     enoughData: complete.length >= 3,
     maintenanceSource: maintenance.source,
     topItems: [],
+    alcoholDrinks: alcoholItems.length,
+    alcoholCalories: alcoholItems.reduce((s, i) => s + i.calories, 0),
   }
   if (monthly) {
     out.month = {

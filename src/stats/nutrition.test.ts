@@ -80,3 +80,21 @@ describe('series and recent deficit', () => {
     expect(recentDeficit({ ...full(), meals: weekdayMeals.slice(0, 2) }, END)).toBeUndefined()
   })
 })
+
+test('counts alcohol items as drinks and totals their calories', () => {
+  const meals = [
+    mkMeal('2026-09-19', 150, 0, { description: 'Beer', items: [{ name: 'Beer', kind: 'alcohol', calories: 150, protein: 0 }] }),
+    mkMeal('2026-09-19', 150, 0, { description: 'Beer', items: [{ name: 'Beer', kind: 'alcohol', calories: 150, protein: 0 }] }),
+    mkMeal('2026-09-19', 125, 0, { description: 'Wine', items: [{ name: 'Wine', kind: 'alcohol', calories: 125, protein: 0 }] }),
+    mkMeal('2026-09-19', 600, 40),
+  ]
+  const n = nutritionWeek({ ...full(), meals }, '2026-09-14', '2026-09-20', false)
+  expect(n.alcoholDrinks).toBe(3)
+  expect(n.alcoholCalories).toBe(425)
+})
+
+test('reports no drinks when none were logged', () => {
+  const n = nutritionWeek({ ...full(), meals: [mkMeal('2026-09-19', 600, 40)] }, '2026-09-14', '2026-09-20', false)
+  expect(n.alcoholDrinks).toBe(0)
+  expect(n.alcoholCalories).toBe(0)
+})
