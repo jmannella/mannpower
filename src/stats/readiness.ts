@@ -1,5 +1,5 @@
 import type { DayRecord } from '../domain/types'
-import { inRange } from '../domain/dates'
+import { addDays, inRange } from '../domain/dates'
 
 /** Below this, the morning counts as a low readiness day. */
 const LOW = 60
@@ -22,12 +22,13 @@ export function readinessWeek(days: DayRecord[], start: string, end: string): Re
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const week = all.filter((d) => inRange(d.date, start, end))
+  const byDate = new Map(all.map((d) => [d.date, d.value]))
   const drops: ReadinessWeek['drops'] = []
-  for (let i = 1; i < all.length; i += 1) {
-    const prev = all[i - 1]
-    const cur = all[i]
-    if (!inRange(cur.date, start, end)) continue
-    if (prev.value - cur.value >= DROP) drops.push({ date: cur.date, from: prev.value, to: cur.value })
+  for (const cur of week) {
+    const prevDate = addDays(cur.date, -1)
+    const prevValue = byDate.get(prevDate)
+    if (prevValue === undefined) continue
+    if (prevValue - cur.value >= DROP) drops.push({ date: cur.date, from: prevValue, to: cur.value })
   }
 
   return {

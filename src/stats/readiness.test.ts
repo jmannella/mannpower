@@ -29,7 +29,7 @@ describe('readinessWeek', () => {
 
   test('skips gaps rather than inventing a comparison', () => {
     const days = [mkDay(week[0], { readiness: 85 }), mkDay(week[3], { readiness: 60 })]
-    expect(readinessWeek(days, week[0], week[6]).drops).toEqual([{ date: week[3], from: 85, to: 60 }])
+    expect(readinessWeek(days, week[0], week[6]).drops).toEqual([])
   })
 
   test('returns an empty read when nothing was recorded', () => {
