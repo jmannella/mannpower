@@ -61,6 +61,20 @@ export interface DayRecord {
   bodyWeight?: number
   steps?: number
   cardio: CardioSession[]
+  /** Samsung watch sleep score for the night that ended on this date, 0 to 100. */
+  sleepScore?: number
+  /** Hours slept that night, one decimal place. */
+  sleepHours?: number
+  /** Samsung watch readiness score for this morning, 0 to 100. */
+  readiness?: number
+  /** Resting heart rate in beats per minute. */
+  restingHr?: number
+  /** Glasses of 250 ml drunk on this date. */
+  waterGlasses?: number
+  /** Waist in inches, measured around the navel. Present only on measurement days. */
+  waist?: number
+  /** Ids of the supplements ticked for this date. */
+  supplementsTaken?: string[]
   updatedAt: string
 }
 
@@ -125,6 +139,18 @@ export interface SavedMeal {
   lastUsedAt: string
 }
 
+export interface Supplement {
+  id: string
+  name: string
+  /** Inactive supplements stay in the list so history still resolves, but are not shown on the card. */
+  active: boolean
+  /** YYYY-MM-DD it was added. Days before this are left out of its adherence denominator. */
+  addedOn?: string
+}
+
+export const IM8_SUPPLEMENT_ID = 'im8'
+export const DEFAULT_WATER_GOAL = 8
+
 export type Sex = 'male' | 'female'
 export type AiModel = 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5'
 export const AI_MODELS: { id: AiModel; label: string }[] = [
@@ -149,6 +175,10 @@ export interface SyncedSettings {
   /** When set, these replace the computed targets. */
   calorieTargetOverride?: number
   proteinTargetOverride?: number
+  /** Supplements offered on the daily check in card. Optional so existing fixtures still compile. */
+  supplements?: Supplement[]
+  /** Glasses of 250 ml a day. Defaults to DEFAULT_WATER_GOAL when unset. */
+  waterGoalGlasses?: number
 }
 
 /** Full settings row stored on the phone. */
@@ -190,6 +220,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dataRepo: 'jmannella/mannpower-data',
   defaultWithTrainer: true,
   customCardioTypes: [],
+  supplements: [{ id: IM8_SUPPLEMENT_ID, name: 'IM8 Daily Essentials', active: true }],
   syncStatus: 'not_set_up',
   aiModel: 'claude-opus-5',
 }
