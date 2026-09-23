@@ -8,9 +8,10 @@ import { deleteExercise, saveExercise, saveSettings } from '../../data/repo'
 import { exportDataset, importDataset, validateDataset } from '../../data/snapshot'
 import { runSync } from '../../sync/runSync'
 import { todayISO } from '../../domain/dates'
+import { newId } from '../../domain/ids'
 import { targetsFor } from '../../nutrition/targets'
 import { estimateMeal } from '../../nutrition/estimate'
-import { AI_MODELS, MUSCLE_LABELS, type AiModel, type SyncStatus } from '../../domain/types'
+import { AI_MODELS, DEFAULT_WATER_GOAL, MUSCLE_LABELS, type AiModel, type Supplement, type SyncStatus } from '../../domain/types'
 
 const STATUS_TEXT: Record<SyncStatus, string> = {
   not_set_up: 'Not set up. Add a token to back up to GitHub.',
@@ -32,6 +33,7 @@ export default function Settings() {
   const [aiKey, setAiKey] = useState<string | null>(null)
   const [aiModel, setAiModel] = useState<AiModel | null>(null)
   const [testing, setTesting] = useState(false)
+  const [newSupplement, setNewSupplement] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   if (!settings) return <div className="screen"><Header title="Settings" /></div>
@@ -99,6 +101,23 @@ export default function Settings() {
     try { await deleteExercise(id) } catch (e) { setMessage(e instanceof Error ? e.message : String(e)) }
   }
 
+  const supplements = (): Supplement[] => settings?.supplements ?? []
+
+  const addSupplement = async () => {
+    const name = newSupplement.trim()
+    if (!name) return
+    await saveSettings({ supplements: [...supplements(), { id: newId(), name, active: true, addedOn: todayISO() }] })
+    setNewSupplement('')
+  }
+
+  const updateSupplement = async (id: string, patch: Partial<Supplement>) => {
+    await saveSettings({ supplements: supplements().map((s) => (s.id === id ? { ...s, ...patch } : s)) })
+  }
+
+  const removeSupplement = async (id: string) => {
+    await saveSettings({ supplements: supplements().filter((s) => s.id !== id) })
+  }
+
   return (
     <div className="screen">
       <Header title="Settings" />
@@ -148,6 +167,55 @@ export default function Settings() {
             <Chip on={settings.sex === 'male'} onClick={() => saveSettings({ sex: 'male' })}>Male</Chip>
             <Chip on={settings.sex === 'female'} onClick={() => saveSettings({ sex: 'female' })}>Female</Chip>
           </div>
+        </div>
+      </Section>
+
+      <Section title="Check in">
+        <div className="card">
+          <NumberField
+            label="Water goal"
+            value={settings?.waterGoalGlasses ?? DEFAULT_WATER_GOAL}
+            onCommit={(v) => saveSettings({ waterGoalGlasses: v })}
+            allowDecimal={false}
+            suffix="glasses of 250 ml"
+          />
+        </div>
+        <div className="list">
+          {(settings?.supplements ?? []).map((s) => (
+            <div key={s.id} className="list-item">
+              <input
+                className="input"
+                aria-label={`Name of ${s.name}`}
+                defaultValue={s.name}
+                onBlur={(e) => {
+                  const name = e.target.value.trim()
+                  if (name && name !== s.name) void updateSupplement(s.id, { name })
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => void updateSupplement(s.id, { active: !s.active })}
+              >
+                {s.active ? `Deactivate ${s.name}` : `Activate ${s.name}`}
+              </button>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label={`Delete ${s.name}`}
+                onClick={() => {
+                  if (!confirm(`Delete ${s.name}? Days you already ticked will keep the tick but will no longer show a name.`)) return
+                  void removeSupplement(s.id)
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="row-between">
+          <input className="input" aria-label="New supplement" value={newSupplement} onChange={(e) => setNewSupplement(e.target.value)} />
+          <button type="button" className="btn btn-sm" onClick={() => void addSupplement()}>Add supplement</button>
         </div>
       </Section>
 
