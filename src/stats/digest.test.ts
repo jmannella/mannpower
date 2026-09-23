@@ -148,6 +148,21 @@ describe('weeklyDigest longevity sections', () => {
   })
 })
 
+describe('waist twelve week trend', () => {
+  test('is emitted on the body composition line when defined', () => {
+    const days = [
+      mkDay('2026-06-22', { bodyWeight: 250, waist: 40 }),
+      mkDay('2026-08-16', { bodyWeight: 248, waist: 39 }),
+      mkDay('2026-08-30', { bodyWeight: 247, waist: 38.5 }),
+      mkDay('2026-09-13', { bodyWeight: 246, waist: 38 }),
+    ]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.change12w).toBeDefined()
+    const md = digestMarkdown(d)
+    expect(md).toContain('in over 12 weeks')
+  })
+})
+
 describe('waist fact', () => {
   test('does not contradict itself when body weight is missing', () => {
     const days = [mkDay('2026-08-16', { waist: 39 }), mkDay('2026-08-30', { waist: 38.5 }), mkDay('2026-09-13', { waist: 38 })]
