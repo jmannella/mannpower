@@ -46,4 +46,23 @@ describe('report script', () => {
     expect(r.code).toBe(1)
     expect(r.err).toContain('Bad --week value')
   })
+
+  test('includes the Recovery section', () => {
+    const r = run(['--file', 'scripts/fixtures/week.json', '--week', '2026-09-13'])
+    expect(r.code).toBe(0)
+    expect(r.out).toContain('## Recovery')
+    expect(r.out).toContain('IM8 Daily Essentials')
+    expect(r.out).toContain('Drinks: 2 this week')
+  })
+
+  test('Recovery numbers match what the fixture computes', () => {
+    const r = run(['--file', 'scripts/fixtures/week.json', '--week', '2026-09-13'])
+    expect(r.code).toBe(0)
+    expect(r.out).toContain('Sleep: avg score 72 over 7 nights')
+    expect(r.out).toContain('Readiness: avg 68 over 7 days')
+    expect(r.out).toContain('Resting heart rate: 7 day avg 54 against a 28 day baseline of 54 (23 readings)')
+    expect(r.out).toContain('Water: avg 6.6 glasses over 7 days logged, 3 at the goal of 8')
+    expect(r.out).toContain('IM8 Daily Essentials: 5 of 7 days (71.4%), current streak 2')
+    expect(r.out).toContain('waist -0.50 in over 4 weeks, -0.50 in over 12 weeks, latest 35.5 on 2026-09-13, read as recomposition')
+  })
 }, 30000)

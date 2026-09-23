@@ -4,6 +4,7 @@ import {
   deleteExercise, deleteWorkout, exerciseHasSets, getDay, getMeta, getSettings, getWorkoutByDate,
   listExercises, listWorkouts, modifyDay, modifyWorkoutByDate, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listPain,
   saveMeal, mealsForDate, listMeals, deleteMeal, saveSavedMeal, listSavedMeals, deleteSavedMeal, logSavedMeal, renameSavedMeal,
+  toggleSupplement, addWater,
 } from './repo'
 import type { MealEntry, Workout } from '../domain/types'
 
@@ -190,5 +191,35 @@ describe('meals', () => {
     await saveSettings({ anthropicKey: 'sk-test', aiModel: 'claude-haiku-4-5' })
     expect((await getMeta()).updatedAt).toBe(before)
     expect((await getSettings()).anthropicKey).toBe('sk-test')
+  })
+})
+
+describe('check in helpers', () => {
+  test('toggles a supplement on and then off', async () => {
+    await toggleSupplement('2026-09-23', 'im8')
+    expect((await getDay('2026-09-23'))?.supplementsTaken).toEqual(['im8'])
+    await toggleSupplement('2026-09-23', 'im8')
+    expect((await getDay('2026-09-23'))?.supplementsTaken).toEqual([])
+  })
+
+  test('keeps other supplements when one is toggled', async () => {
+    await toggleSupplement('2026-09-23', 'im8')
+    await toggleSupplement('2026-09-23', 'cr')
+    await toggleSupplement('2026-09-23', 'im8')
+    expect((await getDay('2026-09-23'))?.supplementsTaken).toEqual(['cr'])
+  })
+
+  test('adds water and clamps at zero', async () => {
+    await addWater('2026-09-23', 1)
+    await addWater('2026-09-23', 1)
+    expect((await getDay('2026-09-23'))?.waterGlasses).toBe(2)
+    await addWater('2026-09-23', -5)
+    expect((await getDay('2026-09-23'))?.waterGlasses).toBe(0)
+  })
+
+  test('stamps meta so a check in write is synced', async () => {
+    const before = (await getMeta()).updatedAt
+    await addWater('2026-09-23', 1)
+    expect((await getMeta()).updatedAt).not.toBe(before)
   })
 })

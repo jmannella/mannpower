@@ -5,6 +5,7 @@ import { db } from '../../data/db'
 import { getSettings, saveExercise } from '../../data/repo'
 import { exportDataset } from '../../data/snapshot'
 import { estimateMeal } from '../../nutrition/estimate'
+import { todayISO } from '../../domain/dates'
 import Settings from './Settings'
 
 vi.mock('../../sync/runSync', () => ({ runSync: vi.fn(async () => 'none') }))
@@ -82,5 +83,44 @@ describe('Settings', () => {
     vi.mocked(estimateMeal).mockResolvedValueOnce({ ok: false, reason: 'auth', message: 'Claude rejected the API key. Check it in Settings.' })
     await userEvent.click(screen.getByRole('button', { name: 'Test key' }))
     expect(await screen.findByText(/rejected the API key/)).toBeInTheDocument()
+  })
+
+  test('adds a supplement with today as its start date', async () => {
+    render(<MemoryRouter><Settings /></MemoryRouter>)
+    await userEvent.type(await screen.findByLabelText('New supplement'), 'Creatine')
+    await userEvent.click(screen.getByRole('button', { name: 'Add supplement' }))
+    expect(await screen.findByDisplayValue('Creatine')).toBeInTheDocument()
+    await waitFor(async () => {
+      const added = (await getSettings()).supplements?.find((s) => s.name === 'Creatine')
+      expect(added?.addedOn).toBe(todayISO())
+      expect(added?.active).toBe(true)
+    })
+  })
+
+  test('deactivates a supplement without losing it', async () => {
+    render(<MemoryRouter><Settings /></MemoryRouter>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Deactivate IM8 Daily Essentials' }))
+    await waitFor(async () => {
+      expect((await getSettings()).supplements?.find((s) => s.id === 'im8')?.active).toBe(false)
+    })
+  })
+
+  test('saves a new water goal', async () => {
+    render(<MemoryRouter><Settings /></MemoryRouter>)
+    const field = await screen.findByLabelText('Water goal')
+    await userEvent.clear(field)
+    await userEvent.type(field, '10')
+    await userEvent.tab()
+    await waitFor(async () => { expect((await getSettings()).waterGoalGlasses).toBe(10) })
+  })
+
+  test('rejects a water goal of zero', async () => {
+    render(<MemoryRouter><Settings /></MemoryRouter>)
+    const field = await screen.findByLabelText('Water goal')
+    await userEvent.clear(field)
+    await userEvent.type(field, '0')
+    await userEvent.tab()
+    expect(await screen.findByText(/Water goal should be between 1 and 40/)).toBeInTheDocument()
+    expect((await getSettings()).waterGoalGlasses).toBeUndefined()
   })
 })

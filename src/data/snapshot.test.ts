@@ -89,4 +89,27 @@ describe('snapshot', () => {
     expect((await listSavedMeals()).map((s) => s.id)).toEqual(['s1'])
     expect((await getSettings()).anthropicKey).toBe('sk-ant-secret')
   })
+
+  test('round trips the new synced settings and day fields', async () => {
+    await saveSettings({ supplements: [{ id: 'cr', name: 'Creatine', active: true, addedOn: '2026-09-01' }], waterGoalGlasses: 10 })
+    await saveDay({ date: '2026-09-23', cardio: [], updatedAt: '', sleepScore: 81, sleepHours: 7.2, readiness: 74, restingHr: 52, waterGlasses: 6, waist: 38.5, supplementsTaken: ['cr'] })
+
+    const ds = await exportDataset()
+    expect(ds.settings.supplements).toEqual([{ id: 'cr', name: 'Creatine', active: true, addedOn: '2026-09-01' }])
+    expect(ds.settings.waterGoalGlasses).toBe(10)
+    expect(ds.days[0].sleepScore).toBe(81)
+
+    await importDataset(ds)
+    const back = await exportDataset()
+    expect(back).toEqual(ds)
+  })
+
+  test('never exports a synced settings key by accident', async () => {
+    const ds = await exportDataset()
+    const expected = [
+      'targetBodyWeight', 'birthYear', 'dailyStepGoal', 'defaultWithTrainer', 'customCardioTypes',
+      'heightInches', 'sex', 'calorieTargetOverride', 'proteinTargetOverride', 'supplements', 'waterGoalGlasses',
+    ].sort()
+    expect(Object.keys(ds.settings).sort()).toEqual(expected)
+  })
 })

@@ -8,8 +8,9 @@ import { Sheet } from '../components/Sheet'
 import { Chip } from '../components/Chip'
 import { MealSheet } from '../MealSheet'
 import { PainSheet } from '../PainSheet'
+import { CheckInCard } from '../CheckInCard'
 import { useDay, useDays, useMeals, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
-import { getSettings, modifyDay, saveSettings } from '../../data/repo'
+import { addWater, getSettings, modifyDay, saveSettings, toggleSupplement } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { addDays, formatShort, todayISO, weekEnd, weekStart } from '../../domain/dates'
 import { BUILTIN_CARDIO_TYPES } from '../../library/cardioTypes'
@@ -18,6 +19,7 @@ import { bodyWeightAvg7 } from '../../stats/bodyweight'
 import { dayCardioMinutes, stepsSummary } from '../../stats/activity'
 import { dayTotals } from '../../nutrition/totals'
 import { targetsFor } from '../../nutrition/targets'
+import { DEFAULT_WATER_GOAL } from '../../domain/types'
 import type { CardioSession, DayRecord } from '../../domain/types'
 
 export default function Today() {
@@ -76,9 +78,30 @@ export default function Today() {
         </div>
       </div>
 
+      <CheckInCard
+        key={date}
+        date={date}
+        day={base}
+        days={days}
+        supplements={settings?.supplements ?? []}
+        onPatch={patch}
+        onToggleSupplement={(id) => toggleSupplement(date, id)}
+      />
+
       <button type="button" className="btn btn-primary btn-block" onClick={() => navigate(`/workout/${date}`)}>
         {workout ? 'Continue workout' : 'Start workout'}
       </button>
+
+      <Section title="Water">
+        <div className="card row-between">
+          <button type="button" className="icon-btn" aria-label="Remove a glass of water" onClick={() => addWater(date, -1)}>−</button>
+          <div className="water-read">
+            <strong>{base.waterGlasses ?? 0} of {settings?.waterGoalGlasses ?? DEFAULT_WATER_GOAL}</strong>
+            <div className="bar"><div className="bar-fill" style={{ width: `${Math.min(100, ((base.waterGlasses ?? 0) / (settings?.waterGoalGlasses ?? DEFAULT_WATER_GOAL)) * 100)}%` }} /></div>
+          </div>
+          <button type="button" className="btn btn-primary" aria-label="Add a glass of water" onClick={() => addWater(date, 1)}>+</button>
+        </div>
+      </Section>
 
       <Section title="Food" right={<button type="button" className="btn btn-sm" onClick={() => setMealOpen(true)}>Add meal</button>}>
         <div className="card">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   label?: string
@@ -17,7 +17,15 @@ interface Props {
 /** Numeric input that commits on blur or Enter. Blank clears. Invalid or negative input restores the previous value. */
 export function NumberField({ label, ariaLabel, value, onCommit, placeholder, suffix, step, allowDecimal = true, autoFocus, big, className }: Props) {
   const [text, setText] = useState(value === undefined ? '' : String(value))
-  useEffect(() => { setText(value === undefined ? '' : String(value)) }, [value])
+  // The initial text above already reflects the mount time value, so the very first run of this
+  // effect has nothing to do. Skipping it matters: React defers passive effects, and under load
+  // that first run can land after the user has already started typing, silently wiping their
+  // keystrokes back to the old value. Only a real change to value after mount should resync text.
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return }
+    setText(value === undefined ? '' : String(value))
+  }, [value])
 
   const commit = () => {
     const trimmed = text.trim()

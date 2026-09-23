@@ -1,4 +1,5 @@
-import type { Dataset, FoodItem, SyncedSettings } from './types'
+import type { Dataset, FoodItem, Supplement, SyncedSettings } from './types'
+import { IM8_SUPPLEMENT_ID } from './types'
 
 export type Validation = { ok: true; dataset: Dataset } | { ok: false; errors: string[] }
 
@@ -14,6 +15,14 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
 const isAmount = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0
 const optAmount = (v: unknown): boolean => v === undefined || isAmount(v)
+
+const inRangeOpt = (v: unknown, lo: number, hi: number): boolean =>
+  v === undefined || (typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi)
+
+function isSupplement(s: unknown): s is Supplement {
+  return isObj(s) && typeof s.id === 'string' && typeof s.name === 'string' && typeof s.active === 'boolean'
+    && (s.addedOn === undefined || (typeof s.addedOn === 'string' && DATE_RE.test(s.addedOn)))
+}
 
 export function isFoodItem(x: unknown): x is FoodItem {
   return isObj(x) && typeof x.name === 'string' && FOOD_KINDS.includes(x.kind as string)
@@ -52,7 +61,13 @@ export function validateDataset(x: unknown): Validation {
   }
   if (Array.isArray(x.days)) {
     x.days.forEach((d, i) => {
-      if (!isObj(d) || typeof d.date !== 'string' || !Array.isArray(d.cardio)) errors.push(`days[${i}] is malformed.`)
+      const ok = isObj(d) && typeof d.date === 'string' && Array.isArray(d.cardio)
+        && inRangeOpt(d.sleepScore, 0, 100) && inRangeOpt(d.readiness, 0, 100)
+        && inRangeOpt(d.sleepHours, 0, 24) && inRangeOpt(d.restingHr, 30, 200)
+        && inRangeOpt(d.waterGlasses, 0, 40) && inRangeOpt(d.waist, 20, 80)
+        && (d.supplementsTaken === undefined
+          || (Array.isArray(d.supplementsTaken) && d.supplementsTaken.every((s) => typeof s === 'string')))
+      if (!ok) errors.push(`days[${i}] is malformed.`)
     })
   }
   if (Array.isArray(x.pain)) {
@@ -90,6 +105,11 @@ export function validateDataset(x: unknown): Validation {
     sex: raw.sex === 'male' || raw.sex === 'female' ? raw.sex : undefined,
     calorieTargetOverride: positive(raw.calorieTargetOverride),
     proteinTargetOverride: positive(raw.proteinTargetOverride),
+    supplements: Array.isArray(raw.supplements)
+      ? (raw.supplements as unknown[]).filter(isSupplement)
+      : [{ id: IM8_SUPPLEMENT_ID, name: 'IM8 Daily Essentials', active: true }],
+    waterGoalGlasses: typeof raw.waterGoalGlasses === 'number' && raw.waterGoalGlasses >= 1 && raw.waterGoalGlasses <= 40
+      ? raw.waterGoalGlasses : undefined,
   }
   return { ok: true, dataset: { ...ds, meals: ds.meals ?? [], savedMeals: ds.savedMeals ?? [], settings } }
 }

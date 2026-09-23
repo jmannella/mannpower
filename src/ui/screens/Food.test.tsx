@@ -88,4 +88,26 @@ describe('Food', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit Breakfast' }))
     expect(screen.getByRole('dialog', { name: 'Edit meal' })).toBeInTheDocument()
   })
+
+  test('logs a beer with its calories', async () => {
+    renderFood()
+    await userEvent.click(await screen.findByRole('button', { name: 'Log a beer' }))
+    const row = await screen.findByRole('listitem')
+    expect(within(row).getByText('Beer')).toBeInTheDocument()
+    expect(within(row).getByText(/150/)).toBeInTheDocument()
+  })
+
+  test('logging a drink shows a confirmation with undo, which removes only that entry', async () => {
+    renderFood()
+    await userEvent.click(await screen.findByRole('button', { name: 'Log a beer' }))
+    await screen.findByRole('listitem')
+    await userEvent.click(await screen.findByRole('button', { name: 'Log a wine' }))
+    expect(await screen.findByText(/Wine logged/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => {
+      const meals = await mealsForDate(today)
+      expect(meals.map((m) => m.description)).toEqual(['Beer'])
+    })
+    await waitFor(() => expect(screen.queryByText(/Wine logged/)).not.toBeInTheDocument())
+  })
 })

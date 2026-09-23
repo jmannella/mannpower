@@ -109,11 +109,130 @@
   ],
   "days": [
     {
+      "date": "2026-08-15",
+      "bodyWeight": 248,
+      "cardio": [],
+      "updatedAt": ""
+    },
+    {
+      "date": "2026-08-17",
+      "bodyWeight": 251,
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 53,
+      "waist": 36
+    },
+    {
+      "date": "2026-08-18",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 55
+    },
+    {
+      "date": "2026-08-19",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 51
+    },
+    {
+      "date": "2026-08-20",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 57
+    },
+    {
+      "date": "2026-08-21",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 52
+    },
+    {
+      "date": "2026-08-22",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 54
+    },
+    {
+      "date": "2026-08-23",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 50
+    },
+    {
+      "date": "2026-08-24",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 56
+    },
+    {
+      "date": "2026-08-25",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 53
+    },
+    {
+      "date": "2026-08-26",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 58
+    },
+    {
+      "date": "2026-08-27",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 51
+    },
+    {
+      "date": "2026-08-28",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 54
+    },
+    {
+      "date": "2026-08-29",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 52
+    },
+    {
+      "date": "2026-08-30",
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 55
+    },
+    {
+      "date": "2026-08-31",
+      "bodyWeight": 249,
+      "cardio": [],
+      "updatedAt": "",
+      "restingHr": 53,
+      "waist": 35.75
+    },
+    {
       "date": "2026-09-01",
       "bodyWeight": 250,
       "steps": 7000,
       "cardio": [],
-      "updatedAt": ""
+      "updatedAt": "",
+      "sleepScore": 82,
+      "sleepHours": 7.1,
+      "readiness": 74,
+      "restingHr": 52,
+      "waterGlasses": 7,
+      "supplementsTaken": ["im8"]
+    },
+    {
+      "date": "2026-09-07",
+      "bodyWeight": 247.5,
+      "steps": 9200,
+      "cardio": [],
+      "updatedAt": "",
+      "sleepScore": 78,
+      "sleepHours": 7.4,
+      "readiness": 80,
+      "restingHr": 51,
+      "waterGlasses": 8,
+      "supplementsTaken": ["im8"]
     },
     {
       "date": "2026-09-08",
@@ -126,7 +245,26 @@
           "minutes": 40
         }
       ],
-      "updatedAt": ""
+      "updatedAt": "",
+      "sleepScore": 90,
+      "sleepHours": 8,
+      "readiness": 85,
+      "restingHr": 50,
+      "waterGlasses": 9,
+      "supplementsTaken": ["im8"]
+    },
+    {
+      "date": "2026-09-09",
+      "bodyWeight": 246.8,
+      "steps": 8600,
+      "cardio": [],
+      "updatedAt": "",
+      "sleepScore": 65,
+      "sleepHours": 6.4,
+      "readiness": 62,
+      "restingHr": 55,
+      "waterGlasses": 6,
+      "supplementsTaken": []
     },
     {
       "date": "2026-09-10",
@@ -139,7 +277,53 @@
           "minutes": 25
         }
       ],
-      "updatedAt": ""
+      "updatedAt": "",
+      "sleepScore": 71,
+      "sleepHours": 6.9,
+      "readiness": 58,
+      "restingHr": 56,
+      "waterGlasses": 5,
+      "supplementsTaken": ["im8"]
+    },
+    {
+      "date": "2026-09-11",
+      "bodyWeight": 246.6,
+      "steps": 7800,
+      "cardio": [],
+      "updatedAt": "",
+      "sleepScore": 60,
+      "sleepHours": 6.1,
+      "readiness": 55,
+      "restingHr": 58,
+      "waterGlasses": 4,
+      "supplementsTaken": []
+    },
+    {
+      "date": "2026-09-12",
+      "bodyWeight": 246.3,
+      "steps": 6400,
+      "cardio": [],
+      "updatedAt": "",
+      "sleepScore": 55,
+      "sleepHours": 5.6,
+      "readiness": 57,
+      "restingHr": 57,
+      "waterGlasses": 6,
+      "supplementsTaken": ["im8"]
+    },
+    {
+      "date": "2026-09-13",
+      "bodyWeight": 246,
+      "steps": 9000,
+      "cardio": [],
+      "updatedAt": "",
+      "sleepScore": 88,
+      "sleepHours": 7.8,
+      "readiness": 79,
+      "restingHr": 53,
+      "waterGlasses": 8,
+      "waist": 35.5,
+      "supplementsTaken": ["im8"]
     }
   ],
   "pain": [
@@ -170,7 +354,9 @@
     "targetBodyWeight": 220,
     "birthYear": 1979,
     "heightInches": 70,
-    "sex": "male"
+    "sex": "male",
+    "supplements": [{"id":"im8","name":"IM8 Daily Essentials","active":true}],
+    "waterGoalGlasses": 8
   },
   "meals": [
     {
@@ -572,6 +758,44 @@
           "protein": 55
         }
       ],
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "drink-1",
+      "date": "2026-09-12",
+      "time": "20:30",
+      "description": "Beer",
+      "items": [
+        {
+          "name": "Beer",
+          "amount": "12 oz",
+          "kind": "alcohol",
+          "calories": 150,
+          "protein": 0,
+          "carbs": 13
+        }
+      ],
+      "source": "quick",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": "drink-2",
+      "date": "2026-09-12",
+      "time": "20:30",
+      "description": "Beer",
+      "items": [
+        {
+          "name": "Beer",
+          "amount": "12 oz",
+          "kind": "alcohol",
+          "calories": 150,
+          "protein": 0,
+          "carbs": 13
+        }
+      ],
+      "source": "quick",
       "createdAt": "",
       "updatedAt": ""
     },

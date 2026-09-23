@@ -147,3 +147,145 @@ describe('weeklyDigest longevity sections', () => {
     expect(digestMarkdown(d)).toContain('add a birth year in Settings')
   })
 })
+
+describe('waist twelve week trend', () => {
+  test('is emitted on the body composition line when defined', () => {
+    const days = [
+      mkDay('2026-06-22', { bodyWeight: 250, waist: 40 }),
+      mkDay('2026-08-16', { bodyWeight: 248, waist: 39 }),
+      mkDay('2026-08-30', { bodyWeight: 247, waist: 38.5 }),
+      mkDay('2026-09-13', { bodyWeight: 246, waist: 38 }),
+    ]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.change12w).toBeDefined()
+    const md = digestMarkdown(d)
+    expect(md).toContain('in over 12 weeks')
+  })
+})
+
+describe('waist fact', () => {
+  test('does not contradict itself when body weight is missing', () => {
+    const days = [mkDay('2026-08-16', { waist: 39 }), mkDay('2026-08-30', { waist: 38.5 }), mkDay('2026-09-13', { waist: 38 })]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.change4w).toBeDefined()
+    expect(d.waist.signal).toBe('unclear')
+    const md = digestMarkdown(d)
+    expect(md).not.toContain('not enough measurements to read')
+    expect(md).toMatch(/waist .*in over 4 weeks/)
+    expect(md).toContain('body weight')
+    expect(md).toContain('missing')
+  })
+
+  test('does not say measurements are insufficient when weight and waist are both fully measured but conflicting', () => {
+    const bodyWeightDays = eachDay('2026-08-13', '2026-09-13').map((date, i) => mkDay(date, { bodyWeight: 254 - i * (4 / 31) }))
+    const waistDays = [mkDay('2026-08-16', { waist: 38 }), mkDay('2026-08-30', { waist: 38.5 }), mkDay('2026-09-13', { waist: 39 })]
+    const days = [...bodyWeightDays, ...waistDays]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.signal).toBe('unclear')
+    expect(d.waist.change4w).toBeDefined()
+    expect(d.waist.weightChange4wLbs).toBeDefined()
+    const md = digestMarkdown(d)
+    expect(md).not.toContain('not enough measurements to read')
+    expect(md).toContain('not moving together')
+  })
+})
+
+describe('recovery', () => {
+  const week = ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20']
+
+  test('carries every recovery read onto the digest', () => {
+    const days = week.map((d, i) => mkDay(d, { sleepScore: 80 + i, sleepHours: 7, readiness: 70, restingHr: 52, waterGlasses: 8, supplementsTaken: ['im8'] }))
+    const d = weeklyDigest({ ...dataset(), workouts: [], days, settings: { ...dataset().settings, supplements: [{ id: 'im8', name: 'IM8 Daily Essentials', active: true }] } }, week[6])
+    expect(d.recovery.sleep.nightsRecorded).toBe(7)
+    expect(d.recovery.readiness.avg).toBe(70)
+    expect(d.recovery.water.daysAtGoal).toBe(7)
+    expect(d.recovery.supplements[0].pct).toBe(100)
+  })
+
+  test('prints the Recovery section with the counts beside the averages', () => {
+    const days = week.map((d) => mkDay(d, { sleepScore: 80, sleepHours: 7, readiness: 70, restingHr: 52, waterGlasses: 8, supplementsTaken: ['im8'] }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days, settings: { ...dataset().settings, supplements: [{ id: 'im8', name: 'IM8 Daily Essentials', active: true }] } }, week[6]))
+    expect(md).toContain('## Recovery')
+    expect(md).toContain('7 nights')
+    expect(md).toContain('IM8 Daily Essentials')
+  })
+
+  test('says plainly that nothing was recorded rather than printing zeroes', () => {
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days: week.map((d) => mkDay(d)) }, week[6]))
+    expect(md).toContain('## Recovery')
+    expect(md).toContain('No check in data logged this week')
+    expect(md).not.toMatch(/Sleep: avg 0/)
+  })
+
+  test('sleep score and sleep hours each carry their own count', () => {
+    const days = week.map((d, i) => mkDay(d, i < 5 ? { sleepScore: 70 } : { sleepHours: 6 }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).toContain('avg score 70 over 5 nights')
+    expect(section).toContain('avg 6.0 hours over 2 nights')
+  })
+
+  test('sleep hours alone still counts as a check in even with no scores', () => {
+    const days = week.map((d) => mkDay(d, { sleepHours: 6.5 }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).not.toContain('No check in data logged this week')
+    expect(section).toContain('avg 6.5 hours over 7 nights')
+  })
+
+  test('the training versus rest day sleep split keeps one decimal', () => {
+    const scores = [70, 73, 70, 72, 73, 74, 75]
+    const days = week.map((d, i) => mkDay(d, { sleepScore: scores[i] }))
+    const workouts = [mkWorkout(week[0], [mkEntry('bench', [[135, 5]])]), mkWorkout(week[1], [mkEntry('bench', [[135, 5]])])]
+    const d = weeklyDigest({ ...dataset(), workouts, days }, week[6])
+    expect(d.recovery.sleep.beforeTraining).toBeCloseTo(71.5, 5)
+    expect(d.recovery.sleep.beforeRest).toBeCloseTo(72.8, 5)
+    const md = digestMarkdown(d)
+    expect(md).toContain('Sleep on training days 71.5 against 72.8 on rest days')
+  })
+
+  test('contains no dashes in the Recovery section', () => {
+    const days = week.map((d) => mkDay(d, { sleepScore: 80, readiness: 70, restingHr: 52 }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).not.toMatch(/[\u2013\u2014]/)
+  })
+
+  test('a resting heart rate baseline with nothing recorded this week says so, never n/a', () => {
+    const baselineDays = eachDay('2026-08-31', '2026-09-13').map((d) => mkDay(d, { restingHr: 52 }))
+    const weekDays = week.map((d) => mkDay(d, { sleepScore: 80, sleepHours: 7 }))
+    const days = [...baselineDays, ...weekDays]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).toContain('Resting heart rate: nothing recorded this week, the 28 day baseline stands at 52 from 14 readings')
+    expect(section).not.toContain('7 day avg n/a')
+  })
+
+  test('a stale baseline with no other check in data this week still says nothing was logged', () => {
+    const baselineDays = eachDay('2026-08-31', '2026-09-13').map((d) => mkDay(d, { restingHr: 52 }))
+    const weekDays = week.map((d) => mkDay(d))
+    const days = [...baselineDays, ...weekDays]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).toContain('No check in data logged this week')
+    expect(section).not.toContain('28 day baseline stands at')
+  })
+
+  test('a partially populated week never prints a zero or n/a for what was not recorded', () => {
+    const days = week.map((d, i) => mkDay(d, {
+      ...(i < 3 ? { sleepScore: 80, sleepHours: 7 } : {}),
+      waterGlasses: 8,
+      supplementsTaken: i < 2 ? ['im8'] : [],
+    }))
+    const ds = { ...dataset(), workouts: [], days, settings: { ...dataset().settings, supplements: [{ id: 'im8', name: 'IM8 Daily Essentials', active: true }] } }
+    const md = digestMarkdown(weeklyDigest(ds, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).not.toContain('- Readiness')
+    expect(section).not.toMatch(/n\/a/)
+    expect(section).not.toContain('avg 0')
+    expect(section).not.toContain('0 of')
+    expect(section).toContain('Sleep: avg score 80 over 3 nights')
+    expect(section).toContain('Water: avg 8.0 glasses over 7 days logged')
+    expect(section).toContain('IM8 Daily Essentials: 2 of 7 days')
+  })
+})

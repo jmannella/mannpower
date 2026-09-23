@@ -18,6 +18,12 @@ import {
   mainLiftBenchmarks, strengthChange4w, type BalanceSummary, type BodyCompSignal, type LiftBenchmark,
 } from './longevity'
 import { ageBand } from '../library/standards'
+import { sleepWeek, type SleepWeek } from './sleep'
+import { readinessWeek, type ReadinessWeek } from './readiness'
+import { restingHrTrend, type RestingHrTrend } from './restingHr'
+import { supplementAdherence, type SupplementAdherence } from './supplements'
+import { waterWeek, type WaterWeek } from './water'
+import { RECOMP_LABELS, waistTrend, type WaistTrend } from './measurements'
 
 export interface Digest {
   weekStart: string
@@ -54,6 +60,16 @@ export interface Digest {
   monthlyLens: boolean
   /** Food logged this week: intake against targets, the intake versus scale reconciliation, and where the calories came from. */
   nutrition: NutritionWeek
+  /** Sleep, readiness, resting heart rate, water and supplements for the week. */
+  recovery: {
+    sleep: SleepWeek
+    readiness: ReadinessWeek
+    restingHr: RestingHrTrend
+    supplements: SupplementAdherence[]
+    water: WaterWeek
+  }
+  /** Waist trend and what it says about the weight trend. */
+  waist: WaistTrend
 }
 
 export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
@@ -130,6 +146,14 @@ export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
     consistency: consistency(workouts, end),
     monthlyLens: isLastSundayOfMonth(end),
     nutrition: nutritionWeek(ds, start, end, isLastSundayOfMonth(end)),
+    recovery: {
+      sleep: sleepWeek(ds, start, end),
+      readiness: readinessWeek(ds.days, start, end),
+      restingHr: restingHrTrend(ds.days, end),
+      supplements: supplementAdherence(ds.days, ds.settings.supplements ?? [], start, end),
+      water: waterWeek(ds.days, start, end, ds.settings.waterGoalGlasses),
+    },
+    waist: waistTrend(ds.days, end),
   }
 }
 
@@ -173,6 +197,7 @@ export function digestMarkdown(d: Digest): string {
   lines.push('## Nutrition')
   if (!food.enoughData) {
     lines.push(`- Food logging too thin to read: ${food.completeDays} complete days of 7, ${food.mealsLogged} meals logged, ${food.pendingMeals} waiting for an estimate`)
+    lines.push(`- Drinks: ${food.alcoholDrinks} this week, ${n(food.alcoholCalories)} kcal`)
   } else {
     lines.push(`- Complete days logged: ${food.completeDays} of 7 (${food.mealsLogged} meals, ${food.pendingMeals} waiting for an estimate). Averages use complete days only`)
     lines.push(`- Calories: avg ${n(food.avgCalories)} a day against a target of ${n(food.calorieTarget)}`)
@@ -185,6 +210,7 @@ export function digestMarkdown(d: Digest): string {
     lines.push(`- Training days: ${grp(food.trainingDay)}; rest days: ${grp(food.restDay)}`)
     lines.push(`- Top calorie items: ${food.topItems.map((t) => `${t.name} ${n(t.calories)} kcal (${t.count})`).join(', ') || 'none'}`)
     lines.push(`- Calorie shares: non alcoholic drinks ${share(food.drinkSharePct)}, alcohol ${share(food.alcoholSharePct)}, after 8 pm ${share(food.lateSharePct)}`)
+    lines.push(`- Drinks: ${food.alcoholDrinks} this week, ${n(food.alcoholCalories)} kcal`)
     lines.push(`- Day to day spread: ${n(food.calorieSpread)} kcal standard deviation`)
   }
   if (food.month) lines.push(`- Month: ${food.month.completeDays} complete days in 28; maintenance ${n(food.month.maintenanceStart)} four weeks ago, ${n(food.month.maintenanceEnd)} now`)
@@ -210,11 +236,63 @@ export function digestMarkdown(d: Digest): string {
   lines.push(`- Loaded carry sets, four weeks: ${f.carrySets} (grip strength tracks with healthy ageing)`)
   lines.push(`- Muscle groups over 10 days untrained: ${d.neglectedGroups.map((g) => `${MUSCLE_LABELS[g]} (${d.daysSinceGroup[g]} days)`).join(', ') || 'none'}`)
   const proteinFact = d.nutrition.enoughData && d.nutrition.proteinDaysHit !== undefined ? `, protein target hit on ${d.nutrition.proteinDaysHit} of ${d.nutrition.completeDays} complete days` : ''
-  lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)}${proteinFact})`)
+  const signed = (x: number) => `${x > 0 ? '+' : ''}${x.toFixed(2)}`
+  const waist12w = d.waist.change12w === undefined ? '' : `, ${signed(d.waist.change12w)} in over 12 weeks`
+  const waistFact = d.waist.change4w === undefined
+    ? `waist not measured enough to read (${d.waist.measurements4w} measurements in 4 weeks)`
+    : d.waist.weightChange4wLbs === undefined
+      ? `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, body weight data needed to read it is missing`
+      : `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, read as ${RECOMP_LABELS[d.waist.signal]}`
+  lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)}${proteinFact}); ${waistFact}`)
   const stepsWord = d.guidelines.stepsMeetsGuideline === undefined ? 'no steps logged' : d.guidelines.stepsMeetsGuideline ? 'steps average meets the 8000 a day marker' : 'steps average is below the 8000 a day marker'
   lines.push(`- Guidelines: cardio short of 150 min by ${d.guidelines.cardioMinutesShort} min; ${stepsWord}`)
   lines.push(`- Consistency: ${d.consistency.sessions4w} sessions in 4 weeks, ${d.consistency.sessions12w} in 12, ${d.consistency.weeksWithTwoPlus4w} of the last 4 weeks had 2 or more`)
   lines.push(`- Monthly lens: ${d.monthlyLens ? 'yes, last Sunday of the month, include the long game section' : 'no'}`, '')
+
+  const r = d.recovery
+  lines.push('## Recovery')
+  const anyCheckIn = r.sleep.nightsRecorded > 0 || r.sleep.hoursRecorded > 0 || r.readiness.daysRecorded > 0
+    || r.restingHr.weekAvg !== undefined || r.water.daysLogged > 0 || r.supplements.some((s) => s.taken > 0)
+  if (!anyCheckIn) {
+    lines.push('- No check in data logged this week, so nothing here can be read')
+  } else {
+    if (r.sleep.nightsRecorded > 0 || r.sleep.hoursRecorded > 0) {
+      const scorePart = r.sleep.nightsRecorded > 0 ? `avg score ${n(r.sleep.avgScore)} over ${r.sleep.nightsRecorded} nights` : undefined
+      const hoursPart = r.sleep.hoursRecorded > 0 ? `avg ${n(r.sleep.avgHours, 1)} hours over ${r.sleep.hoursRecorded} nights` : undefined
+      const bestWorstPart = r.sleep.nightsRecorded > 0
+        ? `; best ${r.sleep.best?.score ?? 'n/a'} on ${r.sleep.best?.date ?? 'n/a'}, worst ${r.sleep.worst?.score ?? 'n/a'} on ${r.sleep.worst?.date ?? 'n/a'}`
+        : ''
+      lines.push(`- Sleep: ${[scorePart, hoursPart].filter((p) => p !== undefined).join(', ')}${bestWorstPart}`)
+    }
+    if (r.sleep.beforeTraining !== undefined && r.sleep.beforeRest !== undefined) {
+      lines.push(`- Sleep on training days ${n(r.sleep.beforeTraining, 1)} against ${n(r.sleep.beforeRest, 1)} on rest days`)
+    }
+    if (r.sleep.worstNightSession) {
+      lines.push(`- A session followed the week's worst night: ${r.sleep.worstNightSession.date}, score ${r.sleep.worstNightSession.score}`)
+    }
+    if (r.sleep.caloriesAfterWorst3 !== undefined && r.sleep.caloriesAfterBest3 !== undefined) {
+      lines.push(`- Calories on the three worst nights ${n(r.sleep.caloriesAfterWorst3)} against ${n(r.sleep.caloriesAfterBest3)} on the three best`)
+    }
+    if (r.readiness.daysRecorded > 0) {
+      lines.push(`- Readiness: avg ${n(r.readiness.avg)} over ${r.readiness.daysRecorded} days, ${r.readiness.lowDays} mornings under 60`)
+      for (const drop of r.readiness.drops) lines.push(`- Readiness fell ${drop.from} to ${drop.to} on ${drop.date}`)
+    }
+    if (r.restingHr.readings28 >= 14 && r.restingHr.weekAvg !== undefined && r.restingHr.baselineAvg !== undefined) {
+      const word = r.restingHr.elevated ? 'elevated, worth watching' : 'in line with the baseline'
+      lines.push(`- Resting heart rate: 7 day avg ${n(r.restingHr.weekAvg)} against a 28 day baseline of ${n(r.restingHr.baselineAvg)} (${r.restingHr.readings28} readings), ${word}`)
+    } else if (r.restingHr.readings28 >= 14 && r.restingHr.weekAvg === undefined && r.restingHr.baselineAvg !== undefined) {
+      lines.push(`- Resting heart rate: nothing recorded this week, the 28 day baseline stands at ${n(r.restingHr.baselineAvg)} from ${r.restingHr.readings28} readings`)
+    } else if (r.restingHr.readings28 > 0) {
+      lines.push(`- Resting heart rate: only ${r.restingHr.readings28} readings in 28 days, not enough for a baseline yet`)
+    }
+    if (r.water.daysLogged > 0) {
+      lines.push(`- Water: avg ${n(r.water.avgGlasses, 1)} glasses over ${r.water.daysLogged} days logged, ${r.water.daysAtGoal} at the goal of ${r.water.goal}`)
+    }
+    for (const s of r.supplements) {
+      lines.push(`- ${s.name}: ${s.taken} of ${s.eligibleDays} days (${share(s.pct)}), current streak ${s.streak}`)
+    }
+  }
+  lines.push('')
 
   lines.push('## Pain')
   if (d.pain.patterns.length === 0 && d.pain.entriesThisWeek === 0) lines.push('- No pain logged')

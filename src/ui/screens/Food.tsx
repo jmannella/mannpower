@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Section } from '../components/Section'
+import { Chip } from '../components/Chip'
 import { MealSheet } from '../MealSheet'
 import { useDays, useMeals, useSettings, useWorkouts } from '../hooks'
 import { deleteMeal, saveMeal, saveSavedMeal } from '../../data/repo'
 import { newId } from '../../domain/ids'
-import { formatShort, nowISO, todayISO } from '../../domain/dates'
+import { formatShort, nowISO, nowTime, todayISO } from '../../domain/dates'
 import { dayTotals, mealTotals } from '../../nutrition/totals'
 import { targetsFor } from '../../nutrition/targets'
+import { DRINK_PRESETS, drinkMeal } from '../../library/drinks'
 import type { MealEntry } from '../../domain/types'
 
 function Meter({ label, value, target, unit, cyan }: { label: string; value: number; target?: number; unit: string; cyan?: boolean }) {
@@ -39,10 +41,29 @@ export default function Food() {
   const workouts = useWorkouts()
   const settings = useSettings()
   const [sheet, setSheet] = useState<{ editing?: MealEntry } | null>(null)
+  const [drinkLogged, setDrinkLogged] = useState<{ id: string; name: string } | null>(null)
+
+  useEffect(() => {
+    if (!drinkLogged) return
+    const t = setTimeout(() => setDrinkLogged(null), 4000)
+    return () => clearTimeout(t)
+  }, [drinkLogged])
 
   const dayMeals = meals.filter((m) => m.date === date).sort((a, b) => a.time.localeCompare(b.time))
   const totals = dayTotals(meals, date)
   const targets = settings ? targetsFor({ meals, days, workouts, settings }, date) : undefined
+
+  const logDrink = async (p: (typeof DRINK_PRESETS)[number]) => {
+    const m = drinkMeal(p, date, nowTime())
+    await saveMeal(m)
+    setDrinkLogged({ id: m.id, name: p.name })
+  }
+
+  const undoDrink = async () => {
+    if (!drinkLogged) return
+    await deleteMeal(drinkLogged.id)
+    setDrinkLogged(null)
+  }
 
   const star = async (m: MealEntry) => {
     const answer = prompt('Name this saved meal', m.description)
@@ -71,6 +92,21 @@ export default function Food() {
       </div>
 
       <button type="button" className="btn btn-primary btn-block" onClick={() => setSheet({})}>Add meal</button>
+
+      <div className="chips">
+        {DRINK_PRESETS.map((p) => (
+          <Chip key={p.name} onClick={() => void logDrink(p)} ariaLabel={`Log a ${p.name.toLowerCase()}`}>
+            + {p.name}
+          </Chip>
+        ))}
+      </div>
+
+      {drinkLogged && (
+        <div className="banner toast row-between" role="status">
+          <span>{drinkLogged.name} logged</span>
+          <button type="button" className="btn btn-sm" onClick={() => void undoDrink()}>Undo</button>
+        </div>
+      )}
 
       <Section title="Meals" right={<span className="muted">{dayMeals.length}</span>}>
         {dayMeals.length === 0 && <div className="muted">Nothing logged.</div>}
