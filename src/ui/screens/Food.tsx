@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Section } from '../components/Section'
+import { Chip } from '../components/Chip'
 import { MealSheet } from '../MealSheet'
 import { useDays, useMeals, useSettings, useWorkouts } from '../hooks'
 import { deleteMeal, saveMeal, saveSavedMeal } from '../../data/repo'
 import { newId } from '../../domain/ids'
-import { formatShort, nowISO, todayISO } from '../../domain/dates'
+import { formatShort, nowISO, nowTime, todayISO } from '../../domain/dates'
 import { dayTotals, mealTotals } from '../../nutrition/totals'
 import { targetsFor } from '../../nutrition/targets'
+import { DRINK_PRESETS, drinkMeal } from '../../library/drinks'
 import type { MealEntry } from '../../domain/types'
 
 function Meter({ label, value, target, unit, cyan }: { label: string; value: number; target?: number; unit: string; cyan?: boolean }) {
@@ -71,6 +73,14 @@ export default function Food() {
       </div>
 
       <button type="button" className="btn btn-primary btn-block" onClick={() => setSheet({})}>Add meal</button>
+
+      <div className="chips">
+        {DRINK_PRESETS.map((p) => (
+          <Chip key={p.name} onClick={() => saveMeal(drinkMeal(p, date, nowTime()))} ariaLabel={`Log a ${p.name.toLowerCase()}`}>
+            + {p.name}
+          </Chip>
+        ))}
+      </div>
 
       <Section title="Meals" right={<span className="muted">{dayMeals.length}</span>}>
         {dayMeals.length === 0 && <div className="muted">Nothing logged.</div>}

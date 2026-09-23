@@ -88,4 +88,12 @@ describe('Food', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit Breakfast' }))
     expect(screen.getByRole('dialog', { name: 'Edit meal' })).toBeInTheDocument()
   })
+
+  test('logs a beer with its calories', async () => {
+    renderFood()
+    await userEvent.click(await screen.findByRole('button', { name: 'Log a beer' }))
+    const row = await screen.findByRole('listitem')
+    expect(within(row).getByText('Beer')).toBeInTheDocument()
+    expect(within(row).getByText(/150/)).toBeInTheDocument()
+  })
 })
