@@ -220,6 +220,17 @@ describe('recovery', () => {
     expect(section).toContain('avg 6.5 hours over 7 nights')
   })
 
+  test('the training versus rest day sleep split keeps one decimal', () => {
+    const scores = [70, 73, 70, 72, 73, 74, 75]
+    const days = week.map((d, i) => mkDay(d, { sleepScore: scores[i] }))
+    const workouts = [mkWorkout(week[0], [mkEntry('bench', [[135, 5]])]), mkWorkout(week[1], [mkEntry('bench', [[135, 5]])])]
+    const d = weeklyDigest({ ...dataset(), workouts, days }, week[6])
+    expect(d.recovery.sleep.beforeTraining).toBeCloseTo(71.5, 5)
+    expect(d.recovery.sleep.beforeRest).toBeCloseTo(72.8, 5)
+    const md = digestMarkdown(d)
+    expect(md).toContain('Sleep on training days 71.5 against 72.8 on rest days')
+  })
+
   test('contains no dashes in the Recovery section', () => {
     const days = week.map((d) => mkDay(d, { sleepScore: 80, readiness: 70, restingHr: 52 }))
     const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))

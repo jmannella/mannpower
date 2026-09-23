@@ -265,7 +265,7 @@ export function digestMarkdown(d: Digest): string {
       lines.push(`- Sleep: ${[scorePart, hoursPart].filter((p) => p !== undefined).join(', ')}${bestWorstPart}`)
     }
     if (r.sleep.beforeTraining !== undefined && r.sleep.beforeRest !== undefined) {
-      lines.push(`- Sleep on training days ${n(r.sleep.beforeTraining)} against ${n(r.sleep.beforeRest)} on rest days`)
+      lines.push(`- Sleep on training days ${n(r.sleep.beforeTraining, 1)} against ${n(r.sleep.beforeRest, 1)} on rest days`)
     }
     if (r.sleep.worstNightSession) {
       lines.push(`- A session followed the week's worst night: ${r.sleep.worstNightSession.date}, score ${r.sleep.worstNightSession.score}`)
