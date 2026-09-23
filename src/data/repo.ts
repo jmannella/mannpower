@@ -100,6 +100,19 @@ export async function modifyDay(date: string, fn: (d: DayRecord) => Partial<DayR
   return next
 }
 
+/** Add or remove a supplement id for a date. The read and the write share one transaction. */
+export async function toggleSupplement(date: string, supplementId: string): Promise<DayRecord> {
+  return modifyDay(date, (cur) => {
+    const taken = cur.supplementsTaken ?? []
+    return { supplementsTaken: taken.includes(supplementId) ? taken.filter((id) => id !== supplementId) : [...taken, supplementId] }
+  })
+}
+
+/** Move the water count for a date. Never goes below zero, so a stray undo is harmless. */
+export async function addWater(date: string, delta: number): Promise<DayRecord> {
+  return modifyDay(date, (cur) => ({ waterGlasses: Math.max(0, (cur.waterGlasses ?? 0) + delta) }))
+}
+
 // Pain
 export async function listPain(): Promise<PainEntry[]> {
   return db.pain.orderBy('date').toArray()
