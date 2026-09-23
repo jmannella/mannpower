@@ -78,6 +78,7 @@ export default function Today() {
       </div>
 
       <CheckInCard
+        key={date}
         date={date}
         day={base}
         days={days}
