@@ -8,8 +8,9 @@ import { Sheet } from '../components/Sheet'
 import { Chip } from '../components/Chip'
 import { MealSheet } from '../MealSheet'
 import { PainSheet } from '../PainSheet'
+import { CheckInCard } from '../CheckInCard'
 import { useDay, useDays, useMeals, usePain, useSettings, useWorkoutByDate, useWorkouts } from '../hooks'
-import { getSettings, modifyDay, saveSettings } from '../../data/repo'
+import { getSettings, modifyDay, saveSettings, toggleSupplement } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { addDays, formatShort, todayISO, weekEnd, weekStart } from '../../domain/dates'
 import { BUILTIN_CARDIO_TYPES } from '../../library/cardioTypes'
@@ -75,6 +76,15 @@ export default function Today() {
           <NumberField label="Steps" value={base.steps} onCommit={(v) => patch({ steps: v })} allowDecimal={false} big />
         </div>
       </div>
+
+      <CheckInCard
+        date={date}
+        day={base}
+        days={days}
+        supplements={settings?.supplements ?? []}
+        onPatch={patch}
+        onToggleSupplement={(id) => toggleSupplement(date, id)}
+      />
 
       <button type="button" className="btn btn-primary btn-block" onClick={() => navigate(`/workout/${date}`)}>
         {workout ? 'Continue workout' : 'Start workout'}
