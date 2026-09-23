@@ -175,6 +175,19 @@ describe('waist fact', () => {
     expect(md).toContain('body weight')
     expect(md).toContain('missing')
   })
+
+  test('does not say measurements are insufficient when weight and waist are both fully measured but conflicting', () => {
+    const bodyWeightDays = eachDay('2026-08-13', '2026-09-13').map((date, i) => mkDay(date, { bodyWeight: 254 - i * (4 / 31) }))
+    const waistDays = [mkDay('2026-08-16', { waist: 38 }), mkDay('2026-08-30', { waist: 38.5 }), mkDay('2026-09-13', { waist: 39 })]
+    const days = [...bodyWeightDays, ...waistDays]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.signal).toBe('unclear')
+    expect(d.waist.change4w).toBeDefined()
+    expect(d.waist.weightChange4wLbs).toBeDefined()
+    const md = digestMarkdown(d)
+    expect(md).not.toContain('not enough measurements to read')
+    expect(md).toContain('not moving together')
+  })
 })
 
 describe('recovery', () => {

@@ -108,6 +108,6 @@ describe('Food', () => {
       const meals = await mealsForDate(today)
       expect(meals.map((m) => m.description)).toEqual(['Beer'])
     })
-    expect(screen.queryByText(/Wine logged/)).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(/Wine logged/)).not.toBeInTheDocument())
   })
 })

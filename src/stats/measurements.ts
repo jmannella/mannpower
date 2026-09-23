@@ -17,7 +17,7 @@ export const RECOMP_LABELS: Record<RecompSignal, string> = {
   gaining_mass: 'gaining mass without the waist following',
   surplus_too_large: 'surplus running too large',
   flat: 'flat, nothing moving either way',
-  unclear: 'not enough measurements to read',
+  unclear: 'the weight and the waist are not moving together, no clear read',
 }
 
 export interface WaistTrend {

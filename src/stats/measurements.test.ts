@@ -71,6 +71,17 @@ describe('waistTrend', () => {
     expect(waistTrend(days, '2026-09-23').signal).toBe('flat')
   })
 
+  test('reads unclear when weight and waist move in conflicting directions, even though both are fully measured', () => {
+    const days = [
+      ...weights('2026-08-26', 29, 254, -4 / 28),
+      mkDay('2026-08-26', { waist: 38 }), mkDay('2026-09-09', { waist: 38.5 }), mkDay('2026-09-23', { waist: 39 }),
+    ]
+    const t = waistTrend(days, '2026-09-23')
+    expect(t.signal).toBe('unclear')
+    expect(t.change4w).toBeDefined()
+    expect(t.weightChange4wLbs).toBeDefined()
+  })
+
   test('will not read a signal from fewer than three measurements', () => {
     const days = [...weights('2026-08-26', 29, 254, -4 / 28), mkDay('2026-08-26', { waist: 39 }), mkDay('2026-09-23', { waist: 38 })]
     const t = waistTrend(days, '2026-09-23')
