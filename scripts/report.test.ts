@@ -63,6 +63,6 @@ describe('report script', () => {
     expect(r.out).toContain('Resting heart rate: 7 day avg 54 against a 28 day baseline of 54 (23 readings)')
     expect(r.out).toContain('Water: avg 6.6 glasses over 7 days logged, 3 at the goal of 8')
     expect(r.out).toContain('IM8 Daily Essentials: 5 of 7 days (71.4%), current streak 2')
-    expect(r.out).toContain('waist -0.50 in over 4 weeks, latest 35.5 on 2026-09-13, read as recomposition')
+    expect(r.out).toContain('waist -0.50 in over 4 weeks, -0.50 in over 12 weeks, latest 35.5 on 2026-09-13, read as recomposition')
   })
 }, 30000)
