@@ -248,7 +248,7 @@ export function digestMarkdown(d: Digest): string {
   const r = d.recovery
   lines.push('## Recovery')
   const anyCheckIn = r.sleep.nightsRecorded > 0 || r.readiness.daysRecorded > 0
-    || r.restingHr.readings28 > 0 || r.water.daysLogged > 0 || r.supplements.some((s) => s.taken > 0)
+    || r.restingHr.weekAvg !== undefined || r.water.daysLogged > 0 || r.supplements.some((s) => s.taken > 0)
   if (!anyCheckIn) {
     lines.push('- No check in data logged this week, so nothing here can be read')
   } else {
@@ -268,9 +268,11 @@ export function digestMarkdown(d: Digest): string {
       lines.push(`- Readiness: avg ${n(r.readiness.avg)} over ${r.readiness.daysRecorded} days, ${r.readiness.lowDays} mornings under 60`)
       for (const drop of r.readiness.drops) lines.push(`- Readiness fell ${drop.from} to ${drop.to} on ${drop.date}`)
     }
-    if (r.restingHr.readings28 >= 14) {
+    if (r.restingHr.readings28 >= 14 && r.restingHr.weekAvg !== undefined && r.restingHr.baselineAvg !== undefined) {
       const word = r.restingHr.elevated ? 'elevated, worth watching' : 'in line with the baseline'
       lines.push(`- Resting heart rate: 7 day avg ${n(r.restingHr.weekAvg)} against a 28 day baseline of ${n(r.restingHr.baselineAvg)} (${r.restingHr.readings28} readings), ${word}`)
+    } else if (r.restingHr.readings28 >= 14 && r.restingHr.weekAvg === undefined && r.restingHr.baselineAvg !== undefined) {
+      lines.push(`- Resting heart rate: nothing recorded this week, the 28 day baseline stands at ${n(r.restingHr.baselineAvg)} from ${r.restingHr.readings28} readings`)
     } else if (r.restingHr.readings28 > 0) {
       lines.push(`- Resting heart rate: only ${r.restingHr.readings28} readings in 28 days, not enough for a baseline yet`)
     }

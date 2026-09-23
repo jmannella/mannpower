@@ -181,4 +181,42 @@ describe('recovery', () => {
     const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
     expect(section).not.toMatch(/[\u2013\u2014]/)
   })
+
+  test('a resting heart rate baseline with nothing recorded this week says so, never n/a', () => {
+    const baselineDays = eachDay('2026-08-31', '2026-09-13').map((d) => mkDay(d, { restingHr: 52 }))
+    const weekDays = week.map((d) => mkDay(d, { sleepScore: 80, sleepHours: 7 }))
+    const days = [...baselineDays, ...weekDays]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).toContain('Resting heart rate: nothing recorded this week, the 28 day baseline stands at 52 from 14 readings')
+    expect(section).not.toContain('7 day avg n/a')
+  })
+
+  test('a stale baseline with no other check in data this week still says nothing was logged', () => {
+    const baselineDays = eachDay('2026-08-31', '2026-09-13').map((d) => mkDay(d, { restingHr: 52 }))
+    const weekDays = week.map((d) => mkDay(d))
+    const days = [...baselineDays, ...weekDays]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).toContain('No check in data logged this week')
+    expect(section).not.toContain('28 day baseline stands at')
+  })
+
+  test('a partially populated week never prints a zero or n/a for what was not recorded', () => {
+    const days = week.map((d, i) => mkDay(d, {
+      ...(i < 3 ? { sleepScore: 80, sleepHours: 7 } : {}),
+      waterGlasses: 8,
+      supplementsTaken: i < 2 ? ['im8'] : [],
+    }))
+    const ds = { ...dataset(), workouts: [], days, settings: { ...dataset().settings, supplements: [{ id: 'im8', name: 'IM8 Daily Essentials', active: true }] } }
+    const md = digestMarkdown(weeklyDigest(ds, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).not.toContain('- Readiness')
+    expect(section).not.toMatch(/n\/a/)
+    expect(section).not.toContain('avg 0')
+    expect(section).not.toContain('0 of')
+    expect(section).toContain('Sleep: avg score 80 over 3 nights')
+    expect(section).toContain('Water: avg 8.0 glasses over 7 days logged')
+    expect(section).toContain('IM8 Daily Essentials: 2 of 7 days')
+  })
 })
