@@ -68,6 +68,8 @@ export interface Supplement {
   name: string
   /** Inactive supplements stay in the list for history but are not shown on the card. */
   active: boolean
+  /** YYYY-MM-DD it was added. Days before this are left out of its adherence denominator. */
+  addedOn?: string
 }
 
 // added to SyncedSettings
@@ -146,7 +148,9 @@ A new Check in section:
 
 ## Statistics
 
-Five new pure modules under `src/stats`, each testable without a database, following the pattern of `bodyweight.ts` and `nutrition.ts`.
+Six new pure modules under `src/stats`, each testable without a database, following the pattern of `bodyweight.ts` and `nutrition.ts`. Drinks per week are not one of them: they are counted from alcohol items inside the existing `nutrition.ts`, which already computes an alcohol calorie share.
+
+A note on pairing, because it is easy to get backwards. The watch reports a score on the morning it wakes you, covering the night that just ended. So the score stored against a date is the sleep that preceded that date's training and that date's eating, and every pairing below is same date, not offset by one.
 
 ### `sleep.ts`
 
@@ -154,8 +158,8 @@ Computes, for the digest week: average sleep score, average hours, nights record
 
 The two correlations are deliberately modest, because seven points cannot support a correlation coefficient and presenting one would be false precision. Instead:
 
-- **Sleep against training.** For each workout in the week, pair it with the sleep score of the night before. Report the average sleep score on training days against non training days, and name the session that followed the worst night when that night is at least fifteen points below the week's average.
-- **Sleep against intake.** Pair each complete food day with the previous night's sleep score. Report average calories on the three worst nights against the three best, and only when at least six nights and six complete food days exist in the week.
+- **Sleep against training.** For each workout in the week, pair it with the sleep score stored on the same date. Report the average sleep score on training days against non training days, and name the session that followed the worst night when that night is at least fifteen points below the week's average.
+- **Sleep against intake.** Pair each complete food day with the sleep score stored on the same date. Report average calories on the three worst nights against the three best, and only when at least six nights and six complete food days exist in the week.
 
 Both return `undefined` when the data is too thin, and the email omits the line rather than hedging it.
 
