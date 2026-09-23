@@ -96,4 +96,18 @@ describe('Food', () => {
     expect(within(row).getByText('Beer')).toBeInTheDocument()
     expect(within(row).getByText(/150/)).toBeInTheDocument()
   })
+
+  test('logging a drink shows a confirmation with undo, which removes only that entry', async () => {
+    renderFood()
+    await userEvent.click(await screen.findByRole('button', { name: 'Log a beer' }))
+    await screen.findByRole('listitem')
+    await userEvent.click(await screen.findByRole('button', { name: 'Log a wine' }))
+    expect(await screen.findByText(/Wine logged/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => {
+      const meals = await mealsForDate(today)
+      expect(meals.map((m) => m.description)).toEqual(['Beer'])
+    })
+    expect(screen.queryByText(/Wine logged/)).not.toBeInTheDocument()
+  })
 })
