@@ -238,8 +238,12 @@ export function digestMarkdown(d: Digest): string {
   const proteinFact = d.nutrition.enoughData && d.nutrition.proteinDaysHit !== undefined ? `, protein target hit on ${d.nutrition.proteinDaysHit} of ${d.nutrition.completeDays} complete days` : ''
   const signed = (x: number) => `${x > 0 ? '+' : ''}${x.toFixed(2)}`
   const waist12w = d.waist.change12w === undefined ? '' : `, ${signed(d.waist.change12w)} in over 12 weeks`
+  const waistLatest = `latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}`
   const waistFact = d.waist.change4w === undefined
-    ? `waist not measured enough to read (${d.waist.measurements4w} measurements in 4 weeks)`
+    // A gap in the last four weeks does not erase a twelve week trend, so report the longer one when it exists.
+    ? d.waist.change12w === undefined
+      ? `waist not measured enough to read (${d.waist.measurements4w} measurements in 4 weeks)`
+      : `waist ${signed(d.waist.change12w)} in over 12 weeks, ${waistLatest}, too few measurements in the last 4 weeks (${d.waist.measurements4w}) for a 4 week read`
     : d.waist.weightChange4wLbs === undefined
       ? `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, body weight data needed to read it is missing`
       : `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, read as ${RECOMP_LABELS[d.waist.signal]}`

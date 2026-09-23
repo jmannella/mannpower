@@ -161,6 +161,23 @@ describe('waist twelve week trend', () => {
     const md = digestMarkdown(d)
     expect(md).toContain('in over 12 weeks')
   })
+
+  test('is still emitted when the last four weeks are too thin for a four week read', () => {
+    const days = [
+      mkDay('2026-06-28', { bodyWeight: 250, waist: 40 }),
+      mkDay('2026-07-19', { bodyWeight: 248, waist: 39 }),
+      mkDay('2026-08-09', { bodyWeight: 246, waist: 38 }),
+    ]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.change4w).toBeUndefined()
+    expect(d.waist.measurements4w).toBe(0)
+    expect(d.waist.change12w).toBeCloseTo(-2, 5)
+    const md = digestMarkdown(d)
+    expect(md).toContain('-2.00 in over 12 weeks')
+    expect(md).toContain('latest 38.0 on 2026-08-09')
+    expect(md).toContain('too few measurements in the last 4 weeks (0) for a 4 week read')
+    expect(md).not.toContain('waist not measured enough to read')
+  })
 })
 
 describe('waist fact', () => {
