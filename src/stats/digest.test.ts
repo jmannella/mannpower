@@ -147,3 +147,38 @@ describe('weeklyDigest longevity sections', () => {
     expect(digestMarkdown(d)).toContain('add a birth year in Settings')
   })
 })
+
+describe('recovery', () => {
+  const week = ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20']
+
+  test('carries every recovery read onto the digest', () => {
+    const days = week.map((d, i) => mkDay(d, { sleepScore: 80 + i, sleepHours: 7, readiness: 70, restingHr: 52, waterGlasses: 8, supplementsTaken: ['im8'] }))
+    const d = weeklyDigest({ ...dataset(), workouts: [], days, settings: { ...dataset().settings, supplements: [{ id: 'im8', name: 'IM8 Daily Essentials', active: true }] } }, week[6])
+    expect(d.recovery.sleep.nightsRecorded).toBe(7)
+    expect(d.recovery.readiness.avg).toBe(70)
+    expect(d.recovery.water.daysAtGoal).toBe(7)
+    expect(d.recovery.supplements[0].pct).toBe(100)
+  })
+
+  test('prints the Recovery section with the counts beside the averages', () => {
+    const days = week.map((d) => mkDay(d, { sleepScore: 80, sleepHours: 7, readiness: 70, restingHr: 52, waterGlasses: 8, supplementsTaken: ['im8'] }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days, settings: { ...dataset().settings, supplements: [{ id: 'im8', name: 'IM8 Daily Essentials', active: true }] } }, week[6]))
+    expect(md).toContain('## Recovery')
+    expect(md).toContain('7 nights')
+    expect(md).toContain('IM8 Daily Essentials')
+  })
+
+  test('says plainly that nothing was recorded rather than printing zeroes', () => {
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days: week.map((d) => mkDay(d)) }, week[6]))
+    expect(md).toContain('## Recovery')
+    expect(md).toContain('No check in data logged this week')
+    expect(md).not.toMatch(/Sleep: avg 0/)
+  })
+
+  test('contains no dashes in the Recovery section', () => {
+    const days = week.map((d) => mkDay(d, { sleepScore: 80, readiness: 70, restingHr: 52 }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).not.toMatch(/[\u2013\u2014]/)
+  })
+})
