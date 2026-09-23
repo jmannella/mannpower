@@ -236,9 +236,13 @@ export function digestMarkdown(d: Digest): string {
   lines.push(`- Loaded carry sets, four weeks: ${f.carrySets} (grip strength tracks with healthy ageing)`)
   lines.push(`- Muscle groups over 10 days untrained: ${d.neglectedGroups.map((g) => `${MUSCLE_LABELS[g]} (${d.daysSinceGroup[g]} days)`).join(', ') || 'none'}`)
   const proteinFact = d.nutrition.enoughData && d.nutrition.proteinDaysHit !== undefined ? `, protein target hit on ${d.nutrition.proteinDaysHit} of ${d.nutrition.completeDays} complete days` : ''
+  const signed = (x: number) => `${x > 0 ? '+' : ''}${x.toFixed(2)}`
+  const waist12w = d.waist.change12w === undefined ? '' : `, ${signed(d.waist.change12w)} in over 12 weeks`
   const waistFact = d.waist.change4w === undefined
     ? `waist not measured enough to read (${d.waist.measurements4w} measurements in 4 weeks)`
-    : `waist ${d.waist.change4w > 0 ? '+' : ''}${d.waist.change4w.toFixed(2)} in over 4 weeks, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, read as ${RECOMP_LABELS[d.waist.signal]}`
+    : d.waist.weightChange4wLbs === undefined
+      ? `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, body weight data needed to read it is missing`
+      : `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, read as ${RECOMP_LABELS[d.waist.signal]}`
   lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)}${proteinFact}); ${waistFact}`)
   const stepsWord = d.guidelines.stepsMeetsGuideline === undefined ? 'no steps logged' : d.guidelines.stepsMeetsGuideline ? 'steps average meets the 8000 a day marker' : 'steps average is below the 8000 a day marker'
   lines.push(`- Guidelines: cardio short of 150 min by ${d.guidelines.cardioMinutesShort} min; ${stepsWord}`)

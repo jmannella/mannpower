@@ -148,6 +148,20 @@ describe('weeklyDigest longevity sections', () => {
   })
 })
 
+describe('waist fact', () => {
+  test('does not contradict itself when body weight is missing', () => {
+    const days = [mkDay('2026-08-16', { waist: 39 }), mkDay('2026-08-30', { waist: 38.5 }), mkDay('2026-09-13', { waist: 38 })]
+    const d = weeklyDigest({ ...dataset(), days }, '2026-09-13')
+    expect(d.waist.change4w).toBeDefined()
+    expect(d.waist.signal).toBe('unclear')
+    const md = digestMarkdown(d)
+    expect(md).not.toContain('not enough measurements to read')
+    expect(md).toMatch(/waist .*in over 4 weeks/)
+    expect(md).toContain('body weight')
+    expect(md).toContain('missing')
+  })
+})
+
 describe('recovery', () => {
   const week = ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20']
 
