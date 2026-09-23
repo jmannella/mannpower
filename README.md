@@ -27,3 +27,11 @@ Describe needs an Anthropic API key. Create one at console.anthropic.com, add a 
 Enter height and sex in Settings (birth year and body weight are already there). The app starts from a formula estimate of maintenance calories and switches to a number measured from your own food and weight logs once 14 full days are logged inside 28. The daily targets update once a week, on Monday. Overrides in Settings replace them.
 
 Design spec: `docs/superpowers/specs/2026-09-08-mannpower-design.md`.
+
+## Daily check in
+
+Today has a check in card for the numbers the watch and ring report each morning: sleep score, hours slept, readiness and resting heart rate. Tick your supplements on the same card. Once a week it also asks for a waist measurement, taken around the navel.
+
+Water is a tap counter on Today, in glasses of 250 ml, with the goal set in Settings. Drinks are four preset buttons on the Food tab, so they count in the day's calories rather than going missing.
+
+Missed a morning? Step the date back at the top of Today and fill it in. Everything on the card writes to the date you are looking at.

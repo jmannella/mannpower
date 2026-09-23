@@ -46,4 +46,12 @@ describe('report script', () => {
     expect(r.code).toBe(1)
     expect(r.err).toContain('Bad --week value')
   })
+
+  test('includes the Recovery section', () => {
+    const r = run(['--file', 'scripts/fixtures/week.json', '--week', '2026-09-13'])
+    expect(r.code).toBe(0)
+    expect(r.out).toContain('## Recovery')
+    expect(r.out).toContain('IM8 Daily Essentials')
+    expect(r.out).toContain('Drinks: 2 this week')
+  })
 }, 30000)
