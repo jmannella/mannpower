@@ -23,6 +23,11 @@ describe('waterWeek', () => {
     expect(waterWeek([], week[0], week[6]).goal).toBe(8)
   })
 
+  test('treats a goal of zero or less as absent', () => {
+    expect(waterWeek([], week[0], week[6], 0).goal).toBe(8)
+    expect(waterWeek([], week[0], week[6], -3).goal).toBe(8)
+  })
+
   test('returns no average when nothing was logged', () => {
     const w = waterWeek(week.map((d) => mkDay(d)), week[0], week[6], 8)
     expect(w.daysLogged).toBe(0)

@@ -175,7 +175,11 @@ export default function Settings() {
           <NumberField
             label="Water goal"
             value={settings?.waterGoalGlasses ?? DEFAULT_WATER_GOAL}
-            onCommit={(v) => saveSettings({ waterGoalGlasses: v })}
+            onCommit={(v) => {
+              const ok = v === undefined || (v >= 1 && v <= 40)
+              if (ok) void saveSettings({ waterGoalGlasses: v })
+              else setMessage('Water goal should be between 1 and 40 glasses.')
+            }}
             allowDecimal={false}
             suffix="glasses of 250 ml"
           />

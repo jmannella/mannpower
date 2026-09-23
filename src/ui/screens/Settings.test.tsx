@@ -113,4 +113,14 @@ describe('Settings', () => {
     await userEvent.tab()
     await waitFor(async () => { expect((await getSettings()).waterGoalGlasses).toBe(10) })
   })
+
+  test('rejects a water goal of zero', async () => {
+    render(<MemoryRouter><Settings /></MemoryRouter>)
+    const field = await screen.findByLabelText('Water goal')
+    await userEvent.clear(field)
+    await userEvent.type(field, '0')
+    await userEvent.tab()
+    expect(await screen.findByText(/Water goal should be between 1 and 40/)).toBeInTheDocument()
+    expect((await getSettings()).waterGoalGlasses).toBeUndefined()
+  })
 })

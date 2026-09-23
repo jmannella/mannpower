@@ -9,7 +9,7 @@ export interface WaterWeek {
 }
 
 export function waterWeek(days: DayRecord[], start: string, end: string, goal?: number): WaterWeek {
-  const target = goal ?? DEFAULT_WATER_GOAL
+  const target = goal !== undefined && goal > 0 ? goal : DEFAULT_WATER_GOAL
   const logged = days
     .filter((d) => d.waterGlasses !== undefined && inRange(d.date, start, end))
     .map((d) => d.waterGlasses as number)
