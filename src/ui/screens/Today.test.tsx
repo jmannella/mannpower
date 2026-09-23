@@ -102,4 +102,16 @@ describe('Today', () => {
       expect(screen.queryByLabelText('Sleep score')).toBeNull()
     })
   })
+
+  test('adds a glass of water', async () => {
+    renderToday()
+    await userEvent.click(await screen.findByRole('button', { name: 'Add a glass of water' }))
+    expect(await screen.findByText('1 of 8')).toBeInTheDocument()
+  })
+
+  test('will not go below zero glasses', async () => {
+    renderToday()
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove a glass of water' }))
+    expect(await screen.findByText('0 of 8')).toBeInTheDocument()
+  })
 })

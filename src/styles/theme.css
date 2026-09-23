@@ -153,3 +153,6 @@ textarea.input { padding: 12px 14px; min-height: 96px; resize: vertical; }
 .meal-row .meal-main { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; }
 .meal-time { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
 .check-row { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
+.water-read { flex: 1; margin: 0 12px; }
+.bar { height: 6px; border-radius: 3px; background: var(--border); margin-top: 6px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--cyan); }
