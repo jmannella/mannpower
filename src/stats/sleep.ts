@@ -9,6 +9,7 @@ const INTAKE_MIN_DAYS = 6
 
 export interface SleepWeek {
   nightsRecorded: number
+  hoursRecorded: number
   avgScore?: number
   avgHours?: number
   best?: { date: string; score: number }
@@ -33,11 +34,13 @@ export function sleepWeek(ds: Dataset, start: string, end: string): SleepWeek {
 
   const avgScore = mean(scored.map((s) => s.score))
   const trainingDates = new Set(ds.workouts.filter((w) => inRange(w.date, start, end)).map((w) => w.date))
+  const hoursDays = days.filter((d) => d.sleepHours !== undefined)
 
   const out: SleepWeek = {
     nightsRecorded: scored.length,
+    hoursRecorded: hoursDays.length,
     avgScore,
-    avgHours: mean(days.filter((d) => d.sleepHours !== undefined).map((d) => d.sleepHours as number)),
+    avgHours: mean(hoursDays.map((d) => d.sleepHours as number)),
     best: scored[scored.length - 1],
     worst: scored[0],
     beforeTraining: mean(scored.filter((s) => trainingDates.has(s.date)).map((s) => s.score)),

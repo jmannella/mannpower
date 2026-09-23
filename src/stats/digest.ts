@@ -247,13 +247,18 @@ export function digestMarkdown(d: Digest): string {
 
   const r = d.recovery
   lines.push('## Recovery')
-  const anyCheckIn = r.sleep.nightsRecorded > 0 || r.readiness.daysRecorded > 0
+  const anyCheckIn = r.sleep.nightsRecorded > 0 || r.sleep.hoursRecorded > 0 || r.readiness.daysRecorded > 0
     || r.restingHr.weekAvg !== undefined || r.water.daysLogged > 0 || r.supplements.some((s) => s.taken > 0)
   if (!anyCheckIn) {
     lines.push('- No check in data logged this week, so nothing here can be read')
   } else {
-    if (r.sleep.nightsRecorded > 0) {
-      lines.push(`- Sleep: avg score ${n(r.sleep.avgScore)} over ${r.sleep.nightsRecorded} nights, avg ${n(r.sleep.avgHours, 1)} hours; best ${r.sleep.best?.score ?? 'n/a'} on ${r.sleep.best?.date ?? 'n/a'}, worst ${r.sleep.worst?.score ?? 'n/a'} on ${r.sleep.worst?.date ?? 'n/a'}`)
+    if (r.sleep.nightsRecorded > 0 || r.sleep.hoursRecorded > 0) {
+      const scorePart = r.sleep.nightsRecorded > 0 ? `avg score ${n(r.sleep.avgScore)} over ${r.sleep.nightsRecorded} nights` : undefined
+      const hoursPart = r.sleep.hoursRecorded > 0 ? `avg ${n(r.sleep.avgHours, 1)} hours over ${r.sleep.hoursRecorded} nights` : undefined
+      const bestWorstPart = r.sleep.nightsRecorded > 0
+        ? `; best ${r.sleep.best?.score ?? 'n/a'} on ${r.sleep.best?.date ?? 'n/a'}, worst ${r.sleep.worst?.score ?? 'n/a'} on ${r.sleep.worst?.date ?? 'n/a'}`
+        : ''
+      lines.push(`- Sleep: ${[scorePart, hoursPart].filter((p) => p !== undefined).join(', ')}${bestWorstPart}`)
     }
     if (r.sleep.beforeTraining !== undefined && r.sleep.beforeRest !== undefined) {
       lines.push(`- Sleep on training days ${n(r.sleep.beforeTraining)} against ${n(r.sleep.beforeRest)} on rest days`)

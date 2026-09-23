@@ -175,6 +175,22 @@ describe('recovery', () => {
     expect(md).not.toMatch(/Sleep: avg 0/)
   })
 
+  test('sleep score and sleep hours each carry their own count', () => {
+    const days = week.map((d, i) => mkDay(d, i < 5 ? { sleepScore: 70 } : { sleepHours: 6 }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).toContain('avg score 70 over 5 nights')
+    expect(section).toContain('avg 6.0 hours over 2 nights')
+  })
+
+  test('sleep hours alone still counts as a check in even with no scores', () => {
+    const days = week.map((d) => mkDay(d, { sleepHours: 6.5 }))
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))
+    const section = md.slice(md.indexOf('## Recovery'), md.indexOf('## Pain'))
+    expect(section).not.toContain('No check in data logged this week')
+    expect(section).toContain('avg 6.5 hours over 7 nights')
+  })
+
   test('contains no dashes in the Recovery section', () => {
     const days = week.map((d) => mkDay(d, { sleepScore: 80, readiness: 70, restingHr: 52 }))
     const md = digestMarkdown(weeklyDigest({ ...dataset(), workouts: [], days }, week[6]))

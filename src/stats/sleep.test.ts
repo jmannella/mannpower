@@ -20,6 +20,14 @@ describe('sleepWeek', () => {
     expect(s.avgHours).toBe(6.5)
   })
 
+  test('counts hours recorded separately from scores recorded', () => {
+    const days = [mkDay(week[0], { sleepScore: 80 }), mkDay(week[1], { sleepHours: 6 }), mkDay(week[2], { sleepHours: 7 })]
+    const s = sleepWeek(ds({ days }), week[0], week[6])
+    expect(s.nightsRecorded).toBe(1)
+    expect(s.hoursRecorded).toBe(2)
+    expect(s.avgHours).toBe(6.5)
+  })
+
   test('returns undefined averages when nothing was recorded', () => {
     const s = sleepWeek(ds({ days: week.map((d) => mkDay(d)) }), week[0], week[6])
     expect(s.nightsRecorded).toBe(0)
