@@ -28,7 +28,10 @@ describe('Food', () => {
     await saveMeal(meal('a', '08:00', 'Breakfast', 400, 30))
     renderFood()
     expect(await screen.findByText('Lunch')).toBeInTheDocument()
-    expect(screen.getByRole('progressbar', { name: 'Calories' })).toHaveAttribute('aria-valuenow', '1200')
+    // The meals and the settings are separate live queries that resolve independently, so waiting
+    // for a meal to appear says nothing about the targets. The meters are gated on the settings,
+    // and under load they arrive later, so this one has to be awaited on its own.
+    expect(await screen.findByRole('progressbar', { name: 'Calories' })).toHaveAttribute('aria-valuenow', '1200')
     expect(screen.getByText(/1000/)).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: 'Protein' })).toHaveAttribute('aria-valuenow', '80')
     const rows = screen.getAllByRole('listitem').map((li) => within(li).getByRole('button', { name: /^Edit / }).getAttribute('aria-label'))
