@@ -2,12 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { db } from '../../data/db'
+import { resetDb } from '../../test/resetDb'
 import { getWorkoutByDate, saveWorkout } from '../../data/repo'
 import Workout from './Workout'
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
 })
 
 function renderWorkout(date = '2026-09-08') {

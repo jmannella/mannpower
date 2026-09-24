@@ -1,4 +1,4 @@
-import { db } from './db'
+import { resetDb } from '../test/resetDb'
 import { onDataChange } from './changes'
 import {
   deleteExercise, deleteWorkout, exerciseHasSets, getDay, getMeta, getSettings, getWorkoutByDate,
@@ -16,8 +16,7 @@ function workout(date: string, exerciseId = 'back-squat'): Workout {
 }
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
 })
 
 describe('repo', () => {

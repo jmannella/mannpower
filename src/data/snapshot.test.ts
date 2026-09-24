@@ -1,4 +1,5 @@
 import { db } from './db'
+import { resetDb } from '../test/resetDb'
 import { onDataChange } from './changes'
 import {
   getSettings, saveDay, saveExercise, savePain, saveSettings, saveWorkout, listWorkouts, listExercises,
@@ -7,8 +8,7 @@ import {
 import { exportDataset, importDataset, validateDataset } from './snapshot'
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
 })
 
 describe('snapshot', () => {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HashRouter } from 'react-router-dom'
-import { db } from '../../data/db'
+import { resetDb } from '../../test/resetDb'
 import { getDay, listPain, saveDay, saveMeal, saveSettings } from '../../data/repo'
 import { todayISO } from '../../domain/dates'
 import Today from './Today'
@@ -10,8 +10,7 @@ import { vi } from 'vitest'
 vi.mock('../../nutrition/estimate', () => ({ estimateMeal: vi.fn() }))
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
 })
 
 function renderToday() {

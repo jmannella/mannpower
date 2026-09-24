@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { db } from '../../data/db'
+import { resetDb } from '../../test/resetDb'
 import { getSettings, saveExercise } from '../../data/repo'
 import { exportDataset } from '../../data/snapshot'
 import { estimateMeal } from '../../nutrition/estimate'
@@ -12,8 +12,7 @@ vi.mock('../../sync/runSync', () => ({ runSync: vi.fn(async () => 'none') }))
 vi.mock('../../nutrition/estimate', () => ({ estimateMeal: vi.fn() }))
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
 })
 
 describe('Settings', () => {

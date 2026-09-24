@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { db } from '../../data/db'
+import { resetDb } from '../../test/resetDb'
 import { listSavedMeals, mealsForDate, saveMeal, saveSettings } from '../../data/repo'
 import { todayISO } from '../../domain/dates'
 import type { MealEntry } from '../../domain/types'
@@ -16,8 +16,7 @@ const meal = (id: string, time: string, description: string, calories: number, p
 const renderFood = () => render(<MemoryRouter><Food /></MemoryRouter>)
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
   localStorage.clear()
 })
 

@@ -1,13 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { db } from '../../data/db'
+import { resetDb } from '../../test/resetDb'
 import { savePain, saveWorkout } from '../../data/repo'
 import History from './History'
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
   await saveWorkout({ id: 'a', date: '2026-09-01', withTrainer: true, createdAt: '', updatedAt: '', entries: [{ id: 'e1', exerciseId: 'back-squat', sets: [{ weight: 185, reps: 5, warmup: false }] }] })
   await saveWorkout({ id: 'b', date: '2026-09-03', withTrainer: false, createdAt: '', updatedAt: '', entries: [{ id: 'e2', exerciseId: 'back-squat', sets: [{ weight: 195, reps: 5, warmup: false }] }] })
   await savePain({ id: 'p', date: '2026-09-03', area: 'knee_left', severity: 2, limited: false, createdAt: '' })

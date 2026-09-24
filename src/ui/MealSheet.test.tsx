@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { db } from '../data/db'
+import { resetDb } from '../test/resetDb'
 import { listSavedMeals, mealsForDate, saveMeal, saveSavedMeal } from '../data/repo'
 import { estimateMeal } from '../nutrition/estimate'
 import { MealSheet } from './MealSheet'
@@ -10,8 +10,7 @@ const mockEstimate = vi.mocked(estimateMeal)
 const DATE = '2026-09-21'
 
 beforeEach(async () => {
-  await db.delete()
-  await db.open()
+  await resetDb()
   localStorage.clear()
   mockEstimate.mockReset()
 })
