@@ -120,7 +120,9 @@
       "cardio": [],
       "updatedAt": "",
       "restingHr": 53,
-      "waist": 36
+      "waist": 36,
+      "neck": 15.5,
+      "hip": 39.5
     },
     {
       "date": "2026-08-18",
@@ -219,7 +221,9 @@
       "readiness": 74,
       "restingHr": 52,
       "waterGlasses": 7,
-      "supplementsTaken": ["im8"]
+      "supplementsTaken": [
+        "im8"
+      ]
     },
     {
       "date": "2026-09-07",
@@ -232,7 +236,9 @@
       "readiness": 80,
       "restingHr": 51,
       "waterGlasses": 8,
-      "supplementsTaken": ["im8"]
+      "supplementsTaken": [
+        "im8"
+      ]
     },
     {
       "date": "2026-09-08",
@@ -251,7 +257,9 @@
       "readiness": 85,
       "restingHr": 50,
       "waterGlasses": 9,
-      "supplementsTaken": ["im8"]
+      "supplementsTaken": [
+        "im8"
+      ]
     },
     {
       "date": "2026-09-09",
@@ -283,7 +291,9 @@
       "readiness": 58,
       "restingHr": 56,
       "waterGlasses": 5,
-      "supplementsTaken": ["im8"]
+      "supplementsTaken": [
+        "im8"
+      ]
     },
     {
       "date": "2026-09-11",
@@ -309,7 +319,9 @@
       "readiness": 57,
       "restingHr": 57,
       "waterGlasses": 6,
-      "supplementsTaken": ["im8"]
+      "supplementsTaken": [
+        "im8"
+      ]
     },
     {
       "date": "2026-09-13",
@@ -323,7 +335,11 @@
       "restingHr": 53,
       "waterGlasses": 8,
       "waist": 35.5,
-      "supplementsTaken": ["im8"]
+      "supplementsTaken": [
+        "im8"
+      ],
+      "neck": 15.25,
+      "hip": 39
     }
   ],
   "pain": [
@@ -355,7 +371,13 @@
     "birthYear": 1979,
     "heightInches": 70,
     "sex": "male",
-    "supplements": [{"id":"im8","name":"IM8 Daily Essentials","active":true}],
+    "supplements": [
+      {
+        "id": "im8",
+        "name": "IM8 Daily Essentials",
+        "active": true
+      }
+    ],
     "waterGoalGlasses": 8
   },
   "meals": [

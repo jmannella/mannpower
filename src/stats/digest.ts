@@ -24,6 +24,7 @@ import { restingHrTrend, type RestingHrTrend } from './restingHr'
 import { supplementAdherence, type SupplementAdherence } from './supplements'
 import { waterWeek, type WaterWeek } from './water'
 import { RECOMP_LABELS, waistTrend, type WaistTrend } from './measurements'
+import { bodyMetrics, type BodyMetrics } from './bodyMetrics'
 
 export interface Digest {
   weekStart: string
@@ -70,6 +71,8 @@ export interface Digest {
   }
   /** Waist trend and what it says about the weight trend. */
   waist: WaistTrend
+  /** Latest neck, waist and hip, the ratios they give, and the tape body fat estimate. */
+  body: BodyMetrics
 }
 
 export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
@@ -154,6 +157,7 @@ export function weeklyDigest(ds: Dataset, weekEndDate: string): Digest {
       water: waterWeek(ds.days, start, end, ds.settings.waterGoalGlasses),
     },
     waist: waistTrend(ds.days, end),
+    body: bodyMetrics(ds.days, ds.settings, end),
   }
 }
 
@@ -248,6 +252,27 @@ export function digestMarkdown(d: Digest): string {
       ? `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, body weight data needed to read it is missing`
       : `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, read as ${RECOMP_LABELS[d.waist.signal]}`
   lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)}${proteinFact}); ${waistFact}`)
+  const b = d.body
+  if (b.bodyFatPct !== undefined) {
+    // Only name the measurements the formula actually consumed. The male one does not use the hip.
+    const from = [
+      b.waist && `waist ${n(b.waist.value, 1)}`,
+      b.neck && `neck ${n(b.neck.value, 1)}`,
+      b.bodyFatUsedHip && b.hip && `hip ${n(b.hip.value, 1)}`,
+    ].filter((x) => x).join(', ')
+    const before = b.bodyFatPct4wAgo === undefined ? '' : `, ${n(b.bodyFatPct4wAgo, 1)}% four weeks ago`
+    lines.push(`- Body fat estimate: ${n(b.bodyFatPct, 1)}% by the tape method from ${from}${before}. It is a circumference estimate, not a scan, so read the direction rather than the digit`)
+  } else if (b.waist && b.neck === undefined && b.heightSet) {
+    lines.push('- Body fat: a neck measurement would add a body fat estimate, since the waist and the height are already there')
+  } else if (b.anything && !b.heightSet) {
+    lines.push('- Body fat: measurements are logged but there is no height in Settings, which the estimate and the waist to height marker both need')
+  }
+  if (b.waistToHeight !== undefined) {
+    lines.push(`- Waist to height: ${b.waistToHeight.toFixed(2)} against the 0.5 marker, ${b.waistToHeightOver ? 'above it' : 'under it'}`)
+  }
+  if (b.waistToHip !== undefined && b.waistToHipThreshold !== undefined) {
+    lines.push(`- Waist to hip: ${b.waistToHip.toFixed(2)} against the ${b.waistToHipThreshold.toFixed(2)} marker, ${b.waistToHipOver ? 'above it' : 'under it'}`)
+  }
   const stepsWord = d.guidelines.stepsMeetsGuideline === undefined ? 'no steps logged' : d.guidelines.stepsMeetsGuideline ? 'steps average meets the 8000 a day marker' : 'steps average is below the 8000 a day marker'
   lines.push(`- Guidelines: cardio short of 150 min by ${d.guidelines.cardioMinutesShort} min; ${stepsWord}`)
   lines.push(`- Consistency: ${d.consistency.sessions4w} sessions in 4 weeks, ${d.consistency.sessions12w} in 12, ${d.consistency.weeksWithTwoPlus4w} of the last 4 weeks had 2 or more`)

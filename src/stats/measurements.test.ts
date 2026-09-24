@@ -1,5 +1,5 @@
 import { mkDay } from './testData'
-import { needsWaist, waistTrend } from './measurements'
+import { needsMonthlyMeasurement, needsWaist, waistTrend } from './measurements'
 
 describe('needsWaist', () => {
   test('is true when no waist has ever been recorded', () => {
@@ -93,5 +93,30 @@ describe('waistTrend', () => {
   test('reports the latest measurement even when the trend is unclear', () => {
     const t = waistTrend([mkDay('2026-09-20', { waist: 38.5 })], '2026-09-23')
     expect(t.latest).toEqual({ date: '2026-09-20', waist: 38.5 })
+  })
+})
+
+describe('needsMonthlyMeasurement', () => {
+  test('asks when that site has never been recorded', () => {
+    expect(needsMonthlyMeasurement([mkDay('2026-09-20', { waist: 38 })], '2026-09-20', 'neck')).toBe(true)
+  })
+
+  test('stays quiet inside 28 days', () => {
+    expect(needsMonthlyMeasurement([mkDay('2026-08-25', { neck: 15 })], '2026-09-20', 'neck')).toBe(false)
+  })
+
+  test('asks again at 28 days', () => {
+    expect(needsMonthlyMeasurement([mkDay('2026-08-23', { neck: 15 })], '2026-09-20', 'neck')).toBe(true)
+  })
+
+  test('judges each site on its own', () => {
+    const days = [mkDay('2026-09-17', { neck: 15 })]
+    expect(needsMonthlyMeasurement(days, '2026-09-20', 'neck')).toBe(false)
+    expect(needsMonthlyMeasurement(days, '2026-09-20', 'hip')).toBe(true)
+  })
+
+  test('uses the date being viewed, not the latest record', () => {
+    const days = [mkDay('2026-08-01', { neck: 15 }), mkDay('2026-09-19', { neck: 15 })]
+    expect(needsMonthlyMeasurement(days, '2026-08-10', 'neck')).toBe(false)
   })
 })

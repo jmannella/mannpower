@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NumberField } from './components/NumberField'
 import { Chip } from './components/Chip'
-import { needsWaist } from '../stats/measurements'
+import { needsMonthlyMeasurement, needsWaist } from '../stats/measurements'
 import type { DayRecord, Supplement } from '../domain/types'
 
 interface Props {
@@ -26,6 +26,8 @@ export function CheckInCard({ date, day, days, supplements, onPatch, onToggleSup
   const taken = day.supplementsTaken ?? []
   const active = supplements.filter((s) => s.active)
   const waistDue = needsWaist(days, date)
+  const neckDue = needsMonthlyMeasurement(days, date, 'neck')
+  const hipDue = needsMonthlyMeasurement(days, date, 'hip')
 
   if (complete && !open) {
     const parts = [
@@ -50,6 +52,12 @@ export function CheckInCard({ date, day, days, supplements, onPatch, onToggleSup
       </div>
       {waistDue && (
         <NumberField label="Waist (around the navel)" value={day.waist} onCommit={(v) => onPatch({ waist: v })} suffix="in" />
+      )}
+      {(neckDue || hipDue) && (
+        <div className="grid-2">
+          {neckDue && <NumberField label="Neck" value={day.neck} onCommit={(v) => onPatch({ neck: v })} suffix="in" />}
+          {hipDue && <NumberField label="Hip (widest point)" value={day.hip} onCommit={(v) => onPatch({ hip: v })} suffix="in" />}
+        </div>
       )}
       <div className="grid-2">
         <NumberField label="Sleep score" value={day.sleepScore} onCommit={(v) => onPatch({ sleepScore: v })} allowDecimal={false} />

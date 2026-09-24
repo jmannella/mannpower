@@ -32,6 +32,8 @@ Design spec: `docs/superpowers/specs/2026-09-08-mannpower-design.md`.
 
 Today has a check in card for the numbers the watch and ring report each morning: sleep score, hours slept, readiness and resting heart rate. Tick your supplements on the same card. Once a week it also asks for a waist measurement, taken around the navel.
 
+Once a month it asks for a neck and a hip measurement as well, each on its own 28 day clock. Those two are what turn the waist into real numbers: neck completes the US Navy body fat estimate, which uses the waist at the navel exactly as this app measures it, and hip gives the waist to hip ratio. Both need your height and sex in Settings. The Sunday email then carries a body fat estimate, waist to height against the 0.5 marker and waist to hip against 0.90 for men or 0.85 for women.
+
 Water is a tap counter on Today, in glasses of 250 ml, with the goal set in Settings. Drinks are four preset buttons on the Food tab, so they count in the day's calories rather than going missing.
 
 Missed a morning? Step the date back at the top of Today and fill it in. Everything on the card writes to the date you are looking at.

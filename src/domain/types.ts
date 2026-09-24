@@ -73,6 +73,10 @@ export interface DayRecord {
   waterGlasses?: number
   /** Waist in inches, measured around the navel. Present only on measurement days. */
   waist?: number
+  /** Neck in inches, measured below the larynx. Prompted monthly. Completes the body fat estimate. */
+  neck?: number
+  /** Hip in inches, measured at the widest point. Prompted monthly. Gives the waist to hip ratio. */
+  hip?: number
   /** Ids of the supplements ticked for this date. */
   supplementsTaken?: string[]
   updatedAt: string

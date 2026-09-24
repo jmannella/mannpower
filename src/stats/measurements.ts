@@ -49,6 +49,20 @@ export function needsWaist(days: DayRecord[], date: string): boolean {
   return daysBetween(last.date, date) >= WAIST_INTERVAL_DAYS
 }
 
+/** Days between the measurements that only move slowly, so the card asks once a month. */
+export const MONTHLY_INTERVAL_DAYS = 28
+
+/**
+ * True when the check in card should ask for a monthly measurement on this date.
+ * Each site is judged on its own, so measuring the neck does not silence the hip.
+ */
+export function needsMonthlyMeasurement(days: DayRecord[], date: string, site: 'neck' | 'hip'): boolean {
+  const past = days.filter((d) => d[site] !== undefined && d.date <= date).sort((a, b) => a.date.localeCompare(b.date))
+  const last = past[past.length - 1]
+  if (!last) return true
+  return daysBetween(last.date, date) >= MONTHLY_INTERVAL_DAYS
+}
+
 function change(list: Point[]): number | undefined {
   if (list.length < 3) return undefined
   return list[list.length - 1].waist - list[0].waist

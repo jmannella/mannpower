@@ -306,3 +306,78 @@ describe('recovery', () => {
     expect(section).toContain('IM8 Daily Essentials: 2 of 7 days')
   })
 })
+
+describe('body metrics', () => {
+  const settings = { ...dataset().settings, sex: 'male' as const, heightInches: 70 }
+
+  test('reports the body fat estimate with the measurements behind it', () => {
+    const days = [mkDay('2026-09-10', { waist: 34, neck: 15 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('Body fat estimate: 17.5%')
+    expect(md).toContain('waist 34.0')
+    expect(md).toContain('neck 15.0')
+  })
+
+  test('names the direction when an estimate existed four weeks earlier', () => {
+    const days = [mkDay('2026-08-10', { waist: 36, neck: 15 }), mkDay('2026-09-10', { waist: 34, neck: 15 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('21.3% four weeks ago')
+  })
+
+  test('reports waist to height against its marker', () => {
+    const days = [mkDay('2026-09-10', { waist: 38 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('Waist to height: 0.54 against the 0.5 marker, above it')
+  })
+
+  test('says plainly when waist to height sits under the marker', () => {
+    const days = [mkDay('2026-09-10', { waist: 34 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('Waist to height: 0.49 against the 0.5 marker, under it')
+  })
+
+  test('reports waist to hip against the marker for the sex that is set', () => {
+    const days = [mkDay('2026-09-10', { waist: 38, hip: 41 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('Waist to hip: 0.93 against the 0.90 marker, above it')
+  })
+
+  test('says what is missing when the estimate is one measurement away', () => {
+    const days = [mkDay('2026-09-10', { waist: 38 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('a neck measurement would add a body fat estimate')
+  })
+
+  test('says nothing at all when no site has ever been measured', () => {
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days: [mkDay('2026-09-10', { bodyWeight: 240 })], settings }, '2026-09-13'))
+    expect(md).not.toContain('Body fat estimate')
+    expect(md).not.toContain('Waist to height')
+    expect(md).not.toContain('would add a body fat estimate')
+  })
+
+  test('does not claim a ratio it cannot compute without a height', () => {
+    const noHeight = { ...dataset().settings, sex: 'male' as const }
+    const days = [mkDay('2026-09-10', { waist: 38, neck: 15 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings: noHeight }, '2026-09-13'))
+    expect(md).not.toContain('Waist to height')
+    expect(md).not.toContain('Body fat estimate')
+    expect(md).toContain('height in Settings')
+  })
+})
+
+describe('body fat provenance', () => {
+  test('does not credit the hip for a man, since his formula ignores it', () => {
+    const settings = { ...dataset().settings, sex: 'male' as const, heightInches: 70 }
+    const days = [mkDay('2026-09-10', { waist: 34, neck: 15, hip: 41 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('from waist 34.0, neck 15.0.')
+    expect(md).not.toContain('neck 15.0, hip')
+  })
+
+  test('credits the hip for a woman, whose formula uses it', () => {
+    const settings = { ...dataset().settings, sex: 'female' as const, heightInches: 65 }
+    const days = [mkDay('2026-09-10', { waist: 30, neck: 13, hip: 38 })]
+    const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
+    expect(md).toContain('hip 38.0')
+  })
+})

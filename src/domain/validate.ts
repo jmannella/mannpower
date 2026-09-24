@@ -65,6 +65,7 @@ export function validateDataset(x: unknown): Validation {
         && inRangeOpt(d.sleepScore, 0, 100) && inRangeOpt(d.readiness, 0, 100)
         && inRangeOpt(d.sleepHours, 0, 24) && inRangeOpt(d.restingHr, 30, 200)
         && inRangeOpt(d.waterGlasses, 0, 40) && inRangeOpt(d.waist, 20, 80)
+        && inRangeOpt(d.neck, 8, 30) && inRangeOpt(d.hip, 20, 80)
         && (d.supplementsTaken === undefined
           || (Array.isArray(d.supplementsTaken) && d.supplementsTaken.every((s) => typeof s === 'string')))
       if (!ok) errors.push(`days[${i}] is malformed.`)

@@ -28,6 +28,15 @@ describe('report script', () => {
     expect(r.out).toContain('Double double')
   })
 
+  test('reports the body fat estimate and both ratios from the fixture', () => {
+    const r = run(['--file', 'scripts/fixtures/week.json', '--week', '2026-09-13'])
+    expect(r.code).toBe(0)
+    // Hand worked from the fixture: waist 35.5, neck 15.25, height 70 gives 19.893.
+    expect(r.out).toContain('Body fat estimate: 19.9% by the tape method from waist 35.5, neck 15.3')
+    expect(r.out).toContain('Waist to height: 0.51 against the 0.5 marker, above it')
+    expect(r.out).toContain('Waist to hip: 0.91 against the 0.90 marker, above it')
+  })
+
   test('fails clearly without a token', () => {
     const r = run(['--week', '2026-09-13'])
     expect(r.code).toBe(1)
