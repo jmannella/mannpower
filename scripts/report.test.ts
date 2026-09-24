@@ -32,9 +32,9 @@ describe('report script', () => {
     const r = run(['--file', 'scripts/fixtures/week.json', '--week', '2026-09-13'])
     expect(r.code).toBe(0)
     // Hand worked from the fixture: waist 35.5, neck 15.25, height 70 gives 19.893.
-    expect(r.out).toContain('Body fat estimate: 19.9% by the tape method from waist 35.5, neck 15.3')
-    expect(r.out).toContain('Waist to height: 0.51 against the 0.5 marker, above it')
-    expect(r.out).toContain('Waist to hip: 0.91 against the 0.90 marker, above it')
+    expect(r.out).toContain('Body fat estimate: 19.9% by the tape method from waist 35.5 on 2026-09-13, neck 15.3 on 2026-09-13')
+    expect(r.out).toContain('Waist to height: 0.51 against the 0.5 marker, at or above it')
+    expect(r.out).toContain('Waist to hip: 0.91 against the 0.90 marker, at or above it')
   })
 
   test('fails clearly without a token', () => {

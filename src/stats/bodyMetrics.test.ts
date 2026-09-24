@@ -75,26 +75,26 @@ describe('bodyMetrics', () => {
 
   test('works out waist to height against the 0.5 marker', () => {
     const m = bodyMetrics([mkDay('2026-09-17', { waist: 38 })], male, end)
-    expect(m.waistToHeight).toBeCloseTo(0.5429, 4)
+    expect(m.waistToHeight).toBe(0.54)
     expect(m.waistToHeightOver).toBe(true)
   })
 
   test('reports waist to height under the marker as under', () => {
     const m = bodyMetrics([mkDay('2026-09-17', { waist: 34 })], male, end)
-    expect(m.waistToHeight).toBeCloseTo(0.4857, 4)
+    expect(m.waistToHeight).toBe(0.49)
     expect(m.waistToHeightOver).toBe(false)
   })
 
   test('works out waist to hip against the 0.90 marker for a man', () => {
     const m = bodyMetrics([mkDay('2026-09-17', { waist: 38, hip: 41 })], male, end)
-    expect(m.waistToHip).toBeCloseTo(0.9268, 4)
+    expect(m.waistToHip).toBe(0.93)
     expect(m.waistToHipThreshold).toBe(0.9)
     expect(m.waistToHipOver).toBe(true)
   })
 
   test('uses the 0.85 marker for a woman', () => {
     const m = bodyMetrics([mkDay('2026-09-17', { waist: 30, hip: 38 })], female, end)
-    expect(m.waistToHip).toBeCloseTo(0.7895, 4)
+    expect(m.waistToHip).toBe(0.79)
     expect(m.waistToHipThreshold).toBe(0.85)
     expect(m.waistToHipOver).toBe(false)
   })
@@ -160,5 +160,62 @@ describe('bodyFatUsedHip', () => {
 
   test('is true for a woman, whose formula needs it', () => {
     expect(bodyMetrics([], female, '2026-09-20').bodyFatUsedHip).toBe(true)
+  })
+})
+
+describe('bodyMetrics guards the email against misleading figures', () => {
+  const end = '2026-09-20'
+
+  test('gives no four week comparison when both estimates come from the same readings', () => {
+    const m = bodyMetrics([mkDay('2026-06-01', { waist: 34, neck: 15 })], male, end)
+    expect(m.bodyFatPct).toBeCloseTo(17.513, 2)
+    expect(m.bodyFatPct4wAgo).toBeUndefined()
+  })
+
+  test('still gives a comparison when the earlier readings really are different', () => {
+    const days = [mkDay('2026-08-01', { waist: 36, neck: 15 }), mkDay('2026-09-17', { waist: 34, neck: 15 })]
+    expect(bodyMetrics(days, male, end).bodyFatPct4wAgo).toBeCloseTo(21.252, 2)
+  })
+
+  test('flags a waist and hip taken more than 35 days apart', () => {
+    const days = [mkDay('2026-06-01', { hip: 41 }), mkDay('2026-09-17', { waist: 38 })]
+    expect(bodyMetrics(days, male, end).waistToHipGapDays).toBe(108)
+  })
+
+  test('does not flag a waist and hip taken together', () => {
+    const days = [mkDay('2026-09-17', { waist: 38, hip: 41 })]
+    expect(bodyMetrics(days, male, end).waistToHipGapDays).toBeUndefined()
+  })
+
+  test('treats a ratio sitting exactly on its marker as at it, matching the published cut points', () => {
+    const whr = bodyMetrics([mkDay('2026-09-17', { waist: 36, hip: 40 })], male, end)
+    expect(whr.waistToHip).toBe(0.9)
+    expect(whr.waistToHipOver).toBe(true)
+    const whtr = bodyMetrics([mkDay('2026-09-17', { waist: 35 })], male, end)
+    expect(whtr.waistToHeight).toBe(0.5)
+    expect(whtr.waistToHeightOver).toBe(true)
+  })
+
+  test('compares the ratio at the same two decimals it is printed at, so number and wording agree', () => {
+    // 34.99 / 70 is 0.49986, which prints as 0.50, so it must not also be called under the marker.
+    const m = bodyMetrics([mkDay('2026-09-17', { waist: 34.99 })], male, end)
+    expect(m.waistToHeight).toBe(0.5)
+    expect(m.waistToHeightOver).toBe(true)
+  })
+
+  test('names what is missing instead of going quiet', () => {
+    const noSex: SyncedSettings = { defaultWithTrainer: true, customCardioTypes: [], heightInches: 70 }
+    const noHeight: SyncedSettings = { defaultWithTrainer: true, customCardioTypes: [], sex: 'male' }
+    expect(bodyMetrics([mkDay('2026-09-17', { neck: 15 })], male, end).bodyFatMissing).toBe('waist')
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 38 })], male, end).bodyFatMissing).toBe('neck')
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 38, neck: 15 })], noHeight, end).bodyFatMissing).toBe('height')
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 38, neck: 15 })], noSex, end).bodyFatMissing).toBe('sex')
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 30, neck: 13 })], female, end).bodyFatMissing).toBe('hip')
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 15, neck: 16 })], male, end).bodyFatMissing).toBe('sites')
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 80, neck: 9 })], male, end).bodyFatMissing).toBe('implausible')
+  })
+
+  test('sets no missing reason when the estimate came out fine', () => {
+    expect(bodyMetrics([mkDay('2026-09-17', { waist: 34, neck: 15 })], male, end).bodyFatMissing).toBeUndefined()
   })
 })

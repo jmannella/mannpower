@@ -75,28 +75,28 @@ describe('CheckInCard', () => {
 describe('CheckInCard monthly measurements', () => {
   test('asks for neck and hip when neither has ever been recorded', () => {
     render(<CheckInCard date="2026-09-23" day={day()} days={[day()]} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
-    expect(screen.getByLabelText('Neck')).toBeInTheDocument()
+    expect(screen.getByLabelText('Neck (below the larynx)')).toBeInTheDocument()
     expect(screen.getByLabelText('Hip (widest point)')).toBeInTheDocument()
   })
 
   test('hides both once they were taken inside the last 28 days', () => {
     const days = [day({ date: '2026-09-01', neck: 15.5, hip: 41 })]
     render(<CheckInCard date="2026-09-23" day={day()} days={days} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
-    expect(screen.queryByLabelText('Neck')).toBeNull()
+    expect(screen.queryByLabelText('Neck (below the larynx)')).toBeNull()
     expect(screen.queryByLabelText('Hip (widest point)')).toBeNull()
   })
 
   test('asks for only the site that is due', () => {
     const days = [day({ date: '2026-09-01', neck: 15.5 })]
     render(<CheckInCard date="2026-09-23" day={day()} days={days} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
-    expect(screen.queryByLabelText('Neck')).toBeNull()
+    expect(screen.queryByLabelText('Neck (below the larynx)')).toBeNull()
     expect(screen.getByLabelText('Hip (widest point)')).toBeInTheDocument()
   })
 
   test('commits a typed neck measurement to the viewed date', async () => {
     const onPatch = vi.fn()
     render(<CheckInCard date="2026-09-23" day={day()} days={[day()]} supplements={supps} onPatch={onPatch} onToggleSupplement={vi.fn()} />)
-    await userEvent.type(screen.getByLabelText('Neck'), '15.5')
+    await userEvent.type(screen.getByLabelText('Neck (below the larynx)'), '15.5')
     await userEvent.tab()
     expect(onPatch).toHaveBeenCalledWith({ neck: 15.5 })
   })

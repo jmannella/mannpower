@@ -55,7 +55,7 @@ export function CheckInCard({ date, day, days, supplements, onPatch, onToggleSup
       )}
       {(neckDue || hipDue) && (
         <div className="grid-2">
-          {neckDue && <NumberField label="Neck" value={day.neck} onCommit={(v) => onPatch({ neck: v })} suffix="in" />}
+          {neckDue && <NumberField label="Neck (below the larynx)" value={day.neck} onCommit={(v) => onPatch({ neck: v })} suffix="in" />}
           {hipDue && <NumberField label="Hip (widest point)" value={day.hip} onCommit={(v) => onPatch({ hip: v })} suffix="in" />}
         </div>
       )}

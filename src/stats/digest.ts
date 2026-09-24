@@ -253,25 +253,34 @@ export function digestMarkdown(d: Digest): string {
       : `waist ${signed(d.waist.change4w)} in over 4 weeks${waist12w}, latest ${n(d.waist.latest?.waist, 1)} on ${d.waist.latest?.date ?? 'n/a'}, read as ${RECOMP_LABELS[d.waist.signal]}`
   lines.push(`- Body composition signal: ${BODY_COMP_LABELS[d.bodyComp.signal]} (4 week weight ${pct(d.bodyComp.weightChange4wPct)}, main lift strength ${pct(d.bodyComp.strengthChange4wPct)}${proteinFact}); ${waistFact}`)
   const b = d.body
+  const dated = (r?: { date: string; value: number }) => (r ? `${n(r.value, 1)} on ${r.date}` : 'n/a')
   if (b.bodyFatPct !== undefined) {
     // Only name the measurements the formula actually consumed. The male one does not use the hip.
     const from = [
-      b.waist && `waist ${n(b.waist.value, 1)}`,
-      b.neck && `neck ${n(b.neck.value, 1)}`,
-      b.bodyFatUsedHip && b.hip && `hip ${n(b.hip.value, 1)}`,
+      b.waist && `waist ${dated(b.waist)}`,
+      b.neck && `neck ${dated(b.neck)}`,
+      b.bodyFatUsedHip && b.hip && `hip ${dated(b.hip)}`,
     ].filter((x) => x).join(', ')
-    const before = b.bodyFatPct4wAgo === undefined ? '' : `, ${n(b.bodyFatPct4wAgo, 1)}% four weeks ago`
+    const before = b.bodyFatPct4wAgo === undefined ? '' : `, against ${n(b.bodyFatPct4wAgo, 1)}% from the readings standing four weeks ago`
     lines.push(`- Body fat estimate: ${n(b.bodyFatPct, 1)}% by the tape method from ${from}${before}. It is a circumference estimate, not a scan, so read the direction rather than the digit`)
-  } else if (b.waist && b.neck === undefined && b.heightSet) {
-    lines.push('- Body fat: a neck measurement would add a body fat estimate, since the waist and the height are already there')
-  } else if (b.anything && !b.heightSet) {
-    lines.push('- Body fat: measurements are logged but there is no height in Settings, which the estimate and the waist to height marker both need')
+  } else if (b.anything) {
+    const why: Record<NonNullable<BodyMetrics['bodyFatMissing']>, string> = {
+      waist: 'a waist measurement would add a body fat estimate',
+      neck: 'a neck measurement would add a body fat estimate, since the waist and the height are already there',
+      hip: 'a hip measurement would add a body fat estimate, which the formula for women needs',
+      height: 'there is no height in Settings, which the estimate and the waist to height marker both need',
+      sex: 'there is no sex in Settings, which the estimate needs to pick a formula',
+      sites: 'the neck reads as large as the waist, so one of the two was almost certainly mistyped',
+      implausible: 'the measurements give a figure outside any plausible range, so one of them was almost certainly mistyped',
+    }
+    if (b.bodyFatMissing) lines.push(`- Body fat: ${why[b.bodyFatMissing]}`)
   }
   if (b.waistToHeight !== undefined) {
-    lines.push(`- Waist to height: ${b.waistToHeight.toFixed(2)} against the 0.5 marker, ${b.waistToHeightOver ? 'above it' : 'under it'}`)
+    lines.push(`- Waist to height: ${b.waistToHeight.toFixed(2)} against the 0.5 marker, ${b.waistToHeightOver ? 'at or above it' : 'under it'} (waist ${dated(b.waist)})`)
   }
   if (b.waistToHip !== undefined && b.waistToHipThreshold !== undefined) {
-    lines.push(`- Waist to hip: ${b.waistToHip.toFixed(2)} against the ${b.waistToHipThreshold.toFixed(2)} marker, ${b.waistToHipOver ? 'above it' : 'under it'}`)
+    const apart = b.waistToHipGapDays === undefined ? '' : `, those two were taken ${b.waistToHipGapDays} days apart`
+    lines.push(`- Waist to hip: ${b.waistToHip.toFixed(2)} against the ${b.waistToHipThreshold.toFixed(2)} marker, ${b.waistToHipOver ? 'at or above it' : 'under it'} (waist ${dated(b.waist)}, hip ${dated(b.hip)}${apart})`)
   }
   const stepsWord = d.guidelines.stepsMeetsGuideline === undefined ? 'no steps logged' : d.guidelines.stepsMeetsGuideline ? 'steps average meets the 8000 a day marker' : 'steps average is below the 8000 a day marker'
   lines.push(`- Guidelines: cardio short of 150 min by ${d.guidelines.cardioMinutesShort} min; ${stepsWord}`)

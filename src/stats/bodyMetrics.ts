@@ -1,5 +1,5 @@
 import type { DayRecord, Sex, SyncedSettings } from '../domain/types'
-import { addDays } from '../domain/dates'
+import { addDays, daysBetween } from '../domain/dates'
 
 /** Waist to height at or above this is the point the marker calls raised. */
 export const WAIST_HEIGHT_MARKER = 0.5
@@ -7,6 +7,14 @@ export const WAIST_HEIGHT_MARKER = 0.5
 export const WAIST_HIP_MARKERS: Record<Sex, number> = { male: 0.9, female: 0.85 }
 /** A tape estimate outside this range is a mistyped measurement, not a body. */
 const PLAUSIBLE_BODY_FAT = { min: 3, max: 60 }
+/** Two readings further apart than this were not taken together, so a ratio of them says so. */
+export const PAIRING_GAP_DAYS = 35
+/**
+ * Ratios are compared at the same two decimals they are printed at, so the number and the
+ * wording beside it can never disagree. The 0.005 this can shift a verdict by is far inside
+ * the quarter inch a tape measure repeats to.
+ */
+const round2 = (x: number): number => Math.round(x * 100) / 100
 
 export interface NavyInput {
   waist?: number
@@ -55,8 +63,13 @@ export interface BodyMetrics {
   waistToHipThreshold?: number
   waistToHipOver?: boolean
   bodyFatPct?: number
-  /** The same estimate from the measurements standing four weeks before the week end. */
+  /** The same estimate from the measurements standing four weeks before the week end. Left out when
+   *  those are the very same readings, since comparing a number against itself proves nothing. */
   bodyFatPct4wAgo?: number
+  /** Why there is no estimate, so the email can say what to do rather than going quiet. */
+  bodyFatMissing?: 'waist' | 'neck' | 'hip' | 'height' | 'sex' | 'sites' | 'implausible'
+  /** Days between the waist and hip readings behind waistToHip, when they were not taken together. */
+  waistToHipGapDays?: number
   /** False when not one of the three sites has ever been measured. */
   anything: boolean
   /** Whether Settings carries the height the estimate and the height ratio both need. */
@@ -66,6 +79,21 @@ export interface BodyMetrics {
 }
 
 type Site = 'waist' | 'neck' | 'hip'
+
+/** Which single thing stands between the readings and an estimate, so the email can name it. */
+function whyNoBodyFat(
+  waist: Reading | undefined, neck: Reading | undefined, hip: Reading | undefined,
+  heightSet: boolean, sex: Sex | undefined,
+): BodyMetrics['bodyFatMissing'] {
+  if (!waist) return 'waist'
+  if (!neck) return 'neck'
+  if (!heightSet) return 'height'
+  if (sex === undefined) return 'sex'
+  if (sex === 'female' && !hip) return 'hip'
+  const girth = sex === 'male' ? waist.value - neck.value : waist.value + (hip?.value ?? 0) - neck.value
+  if (girth <= 0) return 'sites'
+  return 'implausible'
+}
 
 /** The most recent reading for a site on or before a date. Each site is read on its own. */
 function latest(days: DayRecord[], site: Site, onOrBefore: string): Reading | undefined {
@@ -91,27 +119,34 @@ export function bodyMetrics(days: DayRecord[], settings: SyncedSettings, end: st
   }
 
   if (waist && height !== undefined && height > 0) {
-    out.waistToHeight = waist.value / height
+    out.waistToHeight = round2(waist.value / height)
     out.waistToHeightOver = out.waistToHeight >= WAIST_HEIGHT_MARKER
   }
   if (waist && hip && hip.value > 0) {
-    out.waistToHip = waist.value / hip.value
+    out.waistToHip = round2(waist.value / hip.value)
+    const gap = daysBetween(waist.date < hip.date ? waist.date : hip.date, waist.date < hip.date ? hip.date : waist.date)
+    if (gap > PAIRING_GAP_DAYS) out.waistToHipGapDays = gap
     if (sex !== undefined) {
       out.waistToHipThreshold = WAIST_HIP_MARKERS[sex]
-      out.waistToHipOver = out.waistToHip > WAIST_HIP_MARKERS[sex]
+      // The published cut points are inclusive, so a ratio sitting exactly on the marker is at it.
+      out.waistToHipOver = out.waistToHip >= WAIST_HIP_MARKERS[sex]
     }
   }
 
   out.bodyFatPct = navyBodyFat({ waist: waist?.value, neck: neck?.value, hip: hip?.value, heightInches: height, sex })
+  if (out.bodyFatPct === undefined) out.bodyFatMissing = whyNoBodyFat(waist, neck, hip, out.heightSet, sex)
 
   const then = addDays(end, -28)
-  out.bodyFatPct4wAgo = navyBodyFat({
-    waist: latest(days, 'waist', then)?.value,
-    neck: latest(days, 'neck', then)?.value,
-    hip: latest(days, 'hip', then)?.value,
-    heightInches: height,
-    sex,
-  })
+  const thenWaist = latest(days, 'waist', then)
+  const thenNeck = latest(days, 'neck', then)
+  const thenHip = latest(days, 'hip', then)
+  // Comparing an estimate against itself would read as holding steady when nothing was measured at all.
+  const sameReadings = thenWaist?.date === waist?.date && thenNeck?.date === neck?.date && thenHip?.date === hip?.date
+  if (!sameReadings) {
+    out.bodyFatPct4wAgo = navyBodyFat({
+      waist: thenWaist?.value, neck: thenNeck?.value, hip: thenHip?.value, heightInches: height, sex,
+    })
+  }
 
   return out
 }

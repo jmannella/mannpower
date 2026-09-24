@@ -1,4 +1,4 @@
-import type { Dataset } from '../domain/types'
+import type { Dataset, SyncedSettings } from '../domain/types'
 import { eachDay } from '../domain/dates'
 import { mkDay, mkEntry, mkMeal, mkPain, mkWorkout } from './testData'
 import { digestMarkdown, weeklyDigest } from './digest'
@@ -314,20 +314,20 @@ describe('body metrics', () => {
     const days = [mkDay('2026-09-10', { waist: 34, neck: 15 })]
     const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
     expect(md).toContain('Body fat estimate: 17.5%')
-    expect(md).toContain('waist 34.0')
-    expect(md).toContain('neck 15.0')
+    expect(md).toContain('waist 34.0 on 2026-09-10')
+    expect(md).toContain('neck 15.0 on 2026-09-10')
   })
 
   test('names the direction when an estimate existed four weeks earlier', () => {
     const days = [mkDay('2026-08-10', { waist: 36, neck: 15 }), mkDay('2026-09-10', { waist: 34, neck: 15 })]
     const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
-    expect(md).toContain('21.3% four weeks ago')
+    expect(md).toContain('against 21.3% from the readings standing four weeks ago')
   })
 
   test('reports waist to height against its marker', () => {
     const days = [mkDay('2026-09-10', { waist: 38 })]
     const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
-    expect(md).toContain('Waist to height: 0.54 against the 0.5 marker, above it')
+    expect(md).toContain('Waist to height: 0.54 against the 0.5 marker, at or above it')
   })
 
   test('says plainly when waist to height sits under the marker', () => {
@@ -339,7 +339,7 @@ describe('body metrics', () => {
   test('reports waist to hip against the marker for the sex that is set', () => {
     const days = [mkDay('2026-09-10', { waist: 38, hip: 41 })]
     const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
-    expect(md).toContain('Waist to hip: 0.93 against the 0.90 marker, above it')
+    expect(md).toContain('Waist to hip: 0.93 against the 0.90 marker, at or above it')
   })
 
   test('says what is missing when the estimate is one measurement away', () => {
@@ -370,8 +370,9 @@ describe('body fat provenance', () => {
     const settings = { ...dataset().settings, sex: 'male' as const, heightInches: 70 }
     const days = [mkDay('2026-09-10', { waist: 34, neck: 15, hip: 41 })]
     const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
-    expect(md).toContain('from waist 34.0, neck 15.0.')
-    expect(md).not.toContain('neck 15.0, hip')
+    const bodyFatLine = md.split('\n').find((l) => l.startsWith('- Body fat estimate:')) as string
+    expect(bodyFatLine).toContain('from waist 34.0 on 2026-09-10, neck 15.0 on 2026-09-10.')
+    expect(bodyFatLine).not.toContain('hip')
   })
 
   test('credits the hip for a woman, whose formula uses it', () => {
@@ -379,5 +380,39 @@ describe('body fat provenance', () => {
     const days = [mkDay('2026-09-10', { waist: 30, neck: 13, hip: 38 })]
     const md = digestMarkdown(weeklyDigest({ ...dataset(), days, settings }, '2026-09-13'))
     expect(md).toContain('hip 38.0')
+  })
+})
+
+describe('body metric wording', () => {
+  const settings = { ...dataset().settings, sex: 'male' as const, heightInches: 70 }
+  const md = (days: ReturnType<typeof mkDay>[], s: SyncedSettings = settings) =>
+    digestMarkdown(weeklyDigest({ ...dataset(), days, settings: s }, '2026-09-13'))
+
+  test('dates every figure so a stale reading cannot pass as a fresh one', () => {
+    const out = md([mkDay('2026-06-01', { hip: 41 }), mkDay('2026-09-10', { waist: 38, neck: 15 })])
+    expect(out).toContain('waist 38.0 on 2026-09-10')
+    expect(out).toContain('hip 41.0 on 2026-06-01')
+  })
+
+  test('says outright when the waist and hip were not taken together', () => {
+    const out = md([mkDay('2026-06-01', { hip: 41 }), mkDay('2026-09-10', { waist: 38 })])
+    expect(out).toMatch(/those two were taken \d+ days apart/)
+  })
+
+  test('does not compare the estimate against itself when nothing new was measured', () => {
+    const out = md([mkDay('2026-06-01', { waist: 34, neck: 15 })])
+    expect(out).toContain('Body fat estimate: 17.5%')
+    expect(out).not.toContain('four weeks ago')
+  })
+
+  test('names a missing sex rather than going silent', () => {
+    const noSex = { ...dataset().settings, heightInches: 70 }
+    const out = md([mkDay('2026-09-10', { waist: 38, neck: 15 })], noSex)
+    expect(out).toContain('no sex in Settings')
+  })
+
+  test('calls out a neck that reads as large as the waist', () => {
+    const out = md([mkDay('2026-09-10', { waist: 15, neck: 16 })])
+    expect(out).toContain('almost certainly mistyped')
   })
 })
