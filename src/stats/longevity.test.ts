@@ -125,3 +125,13 @@ describe('bodyCompSignal, guidelines, consistency, month lens', () => {
     expect(isLastSundayOfMonth('2026-09-20')).toBe(false)
   })
 })
+
+describe('adductors count as lower body', () => {
+  test('adduction machine volume lands in the lower half of the balance split', () => {
+    const exMap = exerciseMap(BUILTIN_EXERCISES)
+    const w = [mkWorkout('2026-09-14', [mkEntry('hip-adduction-machine', [[90, 10]])])]
+    const b = balanceSummary(w, exMap, '2026-09-14', '2026-09-20')
+    expect(b.lowerVolume).toBe(900)
+    expect(b.upperVolume).toBe(0)
+  })
+})

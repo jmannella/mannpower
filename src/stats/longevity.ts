@@ -11,7 +11,7 @@ export function ageOn(birthYear: number, date: string): number {
 
 const PUSH: MuscleGroup[] = ['chest', 'shoulders', 'triceps']
 const PULL: MuscleGroup[] = ['back', 'biceps']
-const LOWER: MuscleGroup[] = ['quads', 'hamstrings', 'glutes', 'calves']
+const LOWER: MuscleGroup[] = ['quads', 'hamstrings', 'glutes', 'adductors', 'calves']
 const HINGE = /deadlift|rdl|romanian|stiff-leg|hip-thrust|glute-bridge|good-morning|kettlebell-swing|rack-pull|pull-through/
 const SQUAT = /squat|leg-press|lunge|step-up|hack/
 const UNILATERAL_NAME = /single|lunge|step-up|bulgarian|pistol|split/i

@@ -52,3 +52,35 @@ describe('muscle load', () => {
     expect(series[1].load.quads.sets).toBe(1)
   })
 })
+
+describe('adductors', () => {
+  const exMap = exerciseMap(BUILTIN_EXERCISES)
+
+  test('a squat credits them at half a set and half the volume, as any secondary', () => {
+    const w = mkWorkout('2026-09-14', [mkEntry('back-squat', [[225, 5], [225, 5]])])
+    const load = workoutMuscleLoad(w, exMap)
+    expect(load.quads.sets).toBe(2)
+    expect(load.quads.volume).toBe(2250)
+    expect(load.adductors.sets).toBe(1)
+    expect(load.adductors.volume).toBe(1125)
+  })
+
+  test('the adduction machine credits them as the primary', () => {
+    const w = mkWorkout('2026-09-14', [mkEntry('hip-adduction-machine', [[90, 12]])])
+    const load = workoutMuscleLoad(w, exMap)
+    expect(load.adductors.sets).toBe(1)
+    expect(load.adductors.volume).toBe(1080)
+    expect(load.glutes.sets).toBe(0)
+  })
+
+  test('the abduction machine still credits the glutes and not the adductors', () => {
+    const load = workoutMuscleLoad(mkWorkout('2026-09-14', [mkEntry('hip-abduction-machine', [[70, 15]])]), exMap)
+    expect(load.glutes.sets).toBe(1)
+    expect(load.adductors.sets).toBe(0)
+  })
+
+  test('a leg day of curls and extensions leaves them at zero', () => {
+    const w = mkWorkout('2026-09-14', [mkEntry('leg-extension', [[100, 12]]), mkEntry('lying-leg-curl', [[90, 12]])])
+    expect(workoutMuscleLoad(w, exMap).adductors.sets).toBe(0)
+  })
+})

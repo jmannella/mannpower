@@ -1,5 +1,10 @@
 import type { Exercise, MuscleGroup } from '../domain/types'
 
+/**
+ * Adductors are listed as a secondary on loaded hip extension out of deep hip flexion and on
+ * single leg stance work, which is where the adductor magnus does real hip extension work.
+ * They are deliberately left off straight leg hinges, knee flexion, isolation and abduction.
+ */
 function ex(id: string, name: string, primary: MuscleGroup, secondary: MuscleGroup[] = [], aliases?: string[]): Exercise {
   return aliases ? { id, name, primary, secondary, custom: false, aliases } : { id, name, primary, secondary, custom: false }
 }
@@ -19,7 +24,7 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('pec-deck', 'Pec Deck', 'chest'),
   ex('dip', 'Dip', 'chest', ['triceps']),
   // Back
-  ex('deadlift', 'Deadlift', 'back', ['hamstrings', 'glutes']),
+  ex('deadlift', 'Deadlift', 'back', ['hamstrings', 'glutes', 'adductors']),
   ex('barbell-row', 'Barbell Row', 'back', ['biceps']),
   ex('pendlay-row', 'Pendlay Row', 'back', ['biceps']),
   ex('dumbbell-row', 'Dumbbell Row', 'back', ['biceps']),
@@ -69,20 +74,20 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('bench-dip', 'Bench Dip', 'triceps', ['chest']),
   ex('machine-triceps-extension', 'Machine Triceps Extension', 'triceps'),
   // Quads
-  ex('back-squat', 'Back Squat', 'quads', ['glutes', 'core']),
-  ex('front-squat', 'Front Squat', 'quads', ['core']),
-  ex('box-squat', 'Box Squat', 'quads', ['glutes']),
-  ex('smith-machine-squat', 'Smith Machine Squat', 'quads', ['glutes']),
-  ex('goblet-squat', 'Goblet Squat', 'quads', ['glutes']),
-  ex('belt-squat', 'Belt Squat', 'quads', ['glutes']),
-  ex('leg-press', 'Leg Press', 'quads', ['glutes']),
-  ex('hack-squat', 'Hack Squat', 'quads', ['glutes']),
+  ex('back-squat', 'Back Squat', 'quads', ['glutes', 'core', 'adductors']),
+  ex('front-squat', 'Front Squat', 'quads', ['core', 'adductors']),
+  ex('box-squat', 'Box Squat', 'quads', ['glutes', 'adductors']),
+  ex('smith-machine-squat', 'Smith Machine Squat', 'quads', ['glutes', 'adductors']),
+  ex('goblet-squat', 'Goblet Squat', 'quads', ['glutes', 'adductors']),
+  ex('belt-squat', 'Belt Squat', 'quads', ['glutes', 'adductors']),
+  ex('leg-press', 'Leg Press', 'quads', ['glutes', 'adductors']),
+  ex('hack-squat', 'Hack Squat', 'quads', ['glutes', 'adductors']),
   ex('leg-extension', 'Leg Extension', 'quads'),
   ex('sissy-squat', 'Sissy Squat', 'quads'),
-  ex('bulgarian-split-squat', 'Bulgarian Split Squat', 'quads', ['glutes']),
-  ex('walking-lunge', 'Walking Lunge', 'quads', ['glutes']),
-  ex('reverse-lunge', 'Reverse Lunge', 'quads', ['glutes']),
-  ex('step-up', 'Step-Up', 'quads', ['glutes']),
+  ex('bulgarian-split-squat', 'Bulgarian Split Squat', 'quads', ['glutes', 'adductors']),
+  ex('walking-lunge', 'Walking Lunge', 'quads', ['glutes', 'adductors']),
+  ex('reverse-lunge', 'Reverse Lunge', 'quads', ['glutes', 'adductors']),
+  ex('step-up', 'Step-Up', 'quads', ['glutes', 'adductors']),
   // Hamstrings
   ex('romanian-deadlift', 'Romanian Deadlift', 'hamstrings', ['glutes', 'back']),
   ex('stiff-leg-deadlift', 'Stiff-Leg Deadlift', 'hamstrings', ['glutes', 'back']),
@@ -95,10 +100,14 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   // Glutes
   ex('hip-thrust', 'Hip Thrust', 'glutes', ['hamstrings']),
   ex('barbell-glute-bridge', 'Barbell Glute Bridge', 'glutes', ['hamstrings']),
-  ex('sumo-deadlift', 'Sumo Deadlift', 'glutes', ['hamstrings', 'back']),
+  ex('sumo-deadlift', 'Sumo Deadlift', 'glutes', ['hamstrings', 'back', 'adductors']),
   ex('cable-kickback', 'Cable Kickback', 'glutes'),
   ex('cable-pull-through', 'Cable Pull-Through', 'glutes', ['hamstrings']),
-  ex('hip-abduction-machine', 'Hip Abduction Machine', 'glutes'),
+  ex('hip-abduction-machine', 'Hip Abduction Machine', 'glutes', [], ['abductor machine', 'outer thigh machine', 'outer thigh']),
+  ex('hip-adduction-machine', 'Hip Adduction Machine', 'adductors', [], ['adductor machine', 'inner thigh machine', 'inner thigh', 'groin machine']),
+  ex('cable-hip-adduction', 'Cable Hip Adduction', 'adductors', [], ['cable inner thigh', 'standing adduction']),
+  ex('copenhagen-plank', 'Copenhagen Plank', 'adductors', ['core'], ['copenhagen side plank', 'adductor plank']),
+  ex('lateral-lunge', 'Lateral Lunge', 'adductors', ['quads', 'glutes'], ['side lunge', 'cossack squat']),
   ex('kettlebell-swing', 'Kettlebell Swing', 'glutes', ['hamstrings', 'core']),
   // Calves
   ex('standing-calf-raise', 'Standing Calf Raise', 'calves'),
@@ -119,8 +128,8 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('decline-sit-up', 'Decline Sit-Up', 'core'),
   ex('farmers-carry', "Farmer's Carry", 'core', ['back']),
   // Added Sept 10 2026 from the first real session
-  ex('trap-bar-deadlift', 'Trap Bar Deadlift', 'back', ['hamstrings', 'glutes', 'quads'], ['hex bar deadlift']),
-  ex('kettlebell-deadlift', 'Kettlebell Deadlift', 'hamstrings', ['glutes', 'back']),
+  ex('trap-bar-deadlift', 'Trap Bar Deadlift', 'back', ['hamstrings', 'glutes', 'quads', 'adductors'], ['hex bar deadlift']),
+  ex('kettlebell-deadlift', 'Kettlebell Deadlift', 'hamstrings', ['glutes', 'back', 'adductors']),
   ex('landmine-row', 'Landmine Row', 'back', ['biceps']),
   ex('assisted-pull-up', 'Assisted Pull-Up', 'back', ['biceps']),
   ex('single-arm-cable-row', 'Single-Arm Cable Row', 'back', ['biceps']),

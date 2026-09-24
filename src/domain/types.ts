@@ -1,15 +1,15 @@
 export type MuscleGroup =
   | 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps'
-  | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'core'
+  | 'quads' | 'hamstrings' | 'glutes' | 'adductors' | 'calves' | 'core'
 
 export const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest', 'back', 'shoulders', 'biceps', 'triceps',
-  'quads', 'hamstrings', 'glutes', 'calves', 'core',
+  'quads', 'hamstrings', 'glutes', 'adductors', 'calves', 'core',
 ]
 
 export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Biceps', triceps: 'Triceps',
-  quads: 'Quads', hamstrings: 'Hamstrings', glutes: 'Glutes', calves: 'Calves', core: 'Core',
+  quads: 'Quads', hamstrings: 'Hamstrings', glutes: 'Glutes', adductors: 'Adductors', calves: 'Calves', core: 'Core',
 }
 
 export interface Exercise {

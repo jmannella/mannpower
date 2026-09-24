@@ -82,3 +82,44 @@ describe('variation helpers', () => {
     expect(joinVariation([])).toBeUndefined()
   })
 })
+
+describe('adductors', () => {
+  const byId = (id: string) => BUILTIN_EXERCISES.find((e) => e.id === id)
+
+  test('the adduction machine exists and is filed under adductors', () => {
+    const m = byId('hip-adduction-machine')
+    expect(m?.name).toBe('Hip Adduction Machine')
+    expect(m?.primary).toBe('adductors')
+  })
+
+  test('is found by what people actually call it', () => {
+    for (const q of ['adductor machine', 'inner thigh', 'adduction']) {
+      expect(searchExercises(BUILTIN_EXERCISES, q).map((e) => e.id)).toContain('hip-adduction-machine')
+    }
+  })
+
+  test('the abduction machine stays on glutes but is findable too', () => {
+    const m = byId('hip-abduction-machine')
+    expect(m?.primary).toBe('glutes')
+    for (const q of ['abductor machine', 'outer thigh']) {
+      expect(searchExercises(BUILTIN_EXERCISES, q).map((e) => e.id)).toContain('hip-abduction-machine')
+    }
+  })
+
+  test('adduction and abduction do not match each other, since they are opposite movements', () => {
+    expect(searchExercises(BUILTIN_EXERCISES, 'inner thigh').map((e) => e.id)).not.toContain('hip-abduction-machine')
+    expect(searchExercises(BUILTIN_EXERCISES, 'outer thigh').map((e) => e.id)).not.toContain('hip-adduction-machine')
+  })
+
+  test('credits the adductors on the lifts that genuinely recruit them', () => {
+    for (const id of ['sumo-deadlift', 'deadlift', 'back-squat', 'leg-press', 'bulgarian-split-squat']) {
+      expect(byId(id)?.secondary).toContain('adductors')
+    }
+  })
+
+  test('leaves them off isolation work, knee flexion and abduction work', () => {
+    for (const id of ['leg-extension', 'lying-leg-curl', 'seated-leg-curl', 'hip-abduction-machine', 'clamshell', 'standing-calf-raise']) {
+      expect(byId(id)?.secondary ?? []).not.toContain('adductors')
+    }
+  })
+})
