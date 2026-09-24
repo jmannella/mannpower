@@ -38,6 +38,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['src/test/setup.ts'],
+    // Build the jsdom environment once per worker instead of once per file, while keeping each
+    // file isolated. Constructing it was over half the suite's time, which left the two core CI
+    // runner tight enough that timing sensitive screen tests failed there and nowhere else.
+    pool: 'vmThreads',
     // Background sessions check out worktrees under .claude; their copies of the tests are not this tree's tests.
     exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.superpowers/**'],
   },

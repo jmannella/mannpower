@@ -42,8 +42,10 @@ describe('Food', () => {
     await saveMeal(meal('a', '08:00', 'Breakfast', 400, 30))
     renderFood()
     expect(await screen.findByText('Breakfast')).toBeInTheDocument()
+    // Wait for the settings gated note first. Asserting the meter is absent before the settings
+    // query has resolved would pass for the wrong reason, because nothing has rendered yet.
+    const note = await screen.findByText(/No calorie target yet/)
     expect(screen.queryByRole('progressbar', { name: 'Calories' })).not.toBeInTheDocument()
-    const note = screen.getByText(/No calorie target yet/)
     expect(within(note).getByRole('link', { name: /Settings/ })).toBeInTheDocument()
   })
 
