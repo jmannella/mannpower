@@ -6,7 +6,7 @@ import { Section } from '../components/Section'
 import { ChartTip } from '../components/ChartTip'
 import { BigNumber } from '../components/BigNumber'
 import { useDays, useExercises, useMeals, usePain, useSettings, useWorkouts } from '../hooks'
-import { MUSCLE_GROUPS, MUSCLE_LABELS, type BodyArea } from '../../domain/types'
+import { MUSCLE_GROUPS, MUSCLE_LABELS, type BodyArea, type MuscleGroup } from '../../domain/types'
 import { addDays, daysBetween, formatWeekLabel, todayISO, weekStart } from '../../domain/dates'
 import { bodyWeightAvg7, bodyWeightSeries, relativeStrength } from '../../stats/bodyweight'
 import { exerciseMap } from '../../stats/sets'
@@ -20,9 +20,12 @@ import { nutritionSeries, recentDeficit } from '../../stats/nutrition'
 import { targetsFor } from '../../nutrition/targets'
 
 type Range = '4w' | '12w' | 'all'
-const GROUP_COLORS: Record<string, string> = {
+// Typed against the muscle group union on purpose: a new group then fails the build here rather
+// than silently drawing its bars with no fill.
+const GROUP_COLORS: Record<MuscleGroup, string> = {
   chest: '#ff5a1f', back: '#22d3ee', shoulders: '#fbbf24', biceps: '#a78bfa', triceps: '#f472b6',
-  quads: '#4ade80', hamstrings: '#34d399', glutes: '#fb923c', calves: '#60a5fa', core: '#9a9aa6',
+  quads: '#4ade80', hamstrings: '#34d399', glutes: '#fb923c', adductors: '#c084fc',
+  calves: '#60a5fa', core: '#9a9aa6',
 }
 const initialDimension = { width: 360, height: 200 }
 

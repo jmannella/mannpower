@@ -28,7 +28,13 @@ html, body { touch-action: manipulation; }
 /* The page must never grow sideways: a fixed bottom bar spans the layout viewport, so any
    horizontal overflow (a chart wrapper, a long select) pushes the bar past the screen edge. */
 html, body { overflow-x: clip; }
-.recharts-responsive-container, .recharts-wrapper, .recharts-surface, .recharts-legend-wrapper { max-width: 100% !important; }
+/*
+ * Only the responsive container may be clamped. Recharts renders an inner anchor div of
+ * width 0 that the wrapper deliberately overflows with an explicit pixel width, so clamping
+ * the wrapper or the surface to max-width 100% resolves against that zero and collapses every
+ * chart to nothing. The container alone is enough to keep the page from scrolling sideways.
+ */
+.recharts-responsive-container { max-width: 100% !important; }
 .tabbar { width: 100%; max-width: 100vw; }
 .section-title select { max-width: 60vw; }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; margin: 0; }
