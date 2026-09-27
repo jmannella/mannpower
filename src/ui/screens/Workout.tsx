@@ -10,7 +10,7 @@ import { useExercises, usePain, useSettings, useWorkoutByDate, useWorkouts } fro
 import { deleteWorkout, modifyWorkoutByDate, saveExercise } from '../../data/repo'
 import { newId } from '../../domain/ids'
 import { formatShort, nowISO, todayISO } from '../../domain/dates'
-import { MUSCLE_GROUPS, MUSCLE_LABELS, type Exercise, type MuscleGroup, type SetRecord, type Workout as WorkoutRecord, type WorkoutEntry } from '../../domain/types'
+import { MUSCLE_GROUPS, MUSCLE_LABELS, type Exercise, type MuscleGroup, type SetMeasure, type SetRecord, type Workout as WorkoutRecord, type WorkoutEntry } from '../../domain/types'
 import { exerciseMap, workoutVolume } from '../../stats/sets'
 import { exerciseHistory, prsForWorkout } from '../../stats/prs'
 import { workoutMuscleLoad } from '../../stats/muscle'
@@ -219,6 +219,7 @@ export default function Workout() {
     const idx = entries.findIndex((e) => e.id === entry.id)
     const ex = exMap.get(entry.exerciseId)
     const name = ex?.name ?? entry.exerciseId
+    const measure: SetMeasure = ex?.measure ?? 'reps'
     const last = lastTime(entry)
     const tags = variationTags(entry.variation)
     const flare = flareRate(workouts, pain, entry.exerciseId)
@@ -250,16 +251,19 @@ export default function Workout() {
               <button type="button" className="chip" aria-label={`Add variation to ${name}`} onClick={() => setVariationFor(entry.id)}>+ Variation</button>
             </div>
             <div className="muted">
-              {last ? `Last time: ${last.sets.map((s) => `${s.weight} x ${s.reps}`).join(', ')}` : 'First time logging this'}
+              {last ? `Last time: ${last.sets.map((s) => describeSet(s, measure)).join(', ')}` : 'First time logging this'}
               {flare.flares > 0 && <span style={{ color: 'var(--red)' }}> · pain on {flare.flares} of {flare.sessions}</span>}
             </div>
             {entry.sets.length > 0 && (
-              <div className="set-row muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                <span>Set</span><span style={{ textAlign: 'center' }}>lb</span><span style={{ textAlign: 'center' }}>reps</span><span style={{ textAlign: 'center' }}>warm</span><span />
+              <div className={`set-row ${measure === 'carry' ? 'set-row-carry' : ''} muted`} style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <span>Set</span><span style={{ textAlign: 'center' }}>lb</span>
+                <span style={{ textAlign: 'center' }}>{measure === 'reps' ? 'reps' : 'secs'}</span>
+                {measure === 'carry' && <span style={{ textAlign: 'center' }}>feet</span>}
+                <span style={{ textAlign: 'center' }}>warm</span><span />
               </div>
             )}
             {entry.sets.map((s, i) => (
-              <SetRow key={i} index={i} set={s}
+              <SetRow key={i} index={i} set={s} measure={measure}
                 onChange={(nextSetValue) => updateSets(entry.id, (sets) => sets.map((x, k) => (k === i ? nextSetValue : x)))}
                 onDelete={() => updateSets(entry.id, (sets) => sets.filter((_, k) => k !== i))} />
             ))}
@@ -312,15 +316,30 @@ function nextSet(entry: WorkoutEntry, lastSets?: SetRecord[]): SetRecord {
   const prev = entry.sets.at(-1)
   if (prev) return { ...prev, warmup: false }
   const l = lastSets?.[0]
-  return l ? { weight: l.weight, reps: l.reps, warmup: false } : { weight: 0, reps: 0, warmup: false }
+  return l ? { weight: l.weight, reps: l.reps, seconds: l.seconds, feet: l.feet, warmup: false } : { weight: 0, reps: 0, warmup: false }
 }
 
-function SetRow({ index, set, onChange, onDelete }: { index: number; set: SetRecord; onChange: (s: SetRecord) => void; onDelete: () => void }) {
+/** One set in the units its exercise is measured in, for the "last time" line. */
+export function describeSet(s: SetRecord, measure: SetMeasure): string {
+  if (measure === 'reps') return `${s.weight} x ${s.reps}`
+  const parts = [s.seconds ? `${s.seconds}s` : '', s.feet ? `${s.feet} ft` : ''].filter((p) => p)
+  const work = parts.join(' ') || '0s'
+  return s.weight > 0 ? `${s.weight} lb ${work}` : work
+}
+
+function SetRow({ index, set, measure, onChange, onDelete }: { index: number; set: SetRecord; measure: SetMeasure; onChange: (s: SetRecord) => void; onDelete: () => void }) {
   return (
-    <div className="set-row">
+    <div className={`set-row ${measure === 'carry' ? 'set-row-carry' : ''}`}>
       <div className="set-index">{index + 1}</div>
       <SetInput label={`Set ${index + 1} weight`} value={set.weight} onCommit={(v) => onChange({ ...set, weight: v })} />
-      <SetInput label={`Set ${index + 1} reps`} value={set.reps} integer onCommit={(v) => onChange({ ...set, reps: v })} />
+      {measure === 'reps' ? (
+        <SetInput label={`Set ${index + 1} reps`} value={set.reps} integer onCommit={(v) => onChange({ ...set, reps: v })} />
+      ) : (
+        <SetInput label={`Set ${index + 1} seconds`} value={set.seconds ?? 0} integer onCommit={(v) => onChange({ ...set, seconds: v })} />
+      )}
+      {measure === 'carry' && (
+        <SetInput label={`Set ${index + 1} feet`} value={set.feet ?? 0} integer onCommit={(v) => onChange({ ...set, feet: v })} />
+      )}
       <button type="button" className={`warmup-toggle ${set.warmup ? 'on' : ''}`} aria-pressed={set.warmup} aria-label={`Set ${index + 1} warm-up`} onClick={() => onChange({ ...set, warmup: !set.warmup })}>W</button>
       <button type="button" className="icon-btn" aria-label={`Delete set ${index + 1}`} onClick={onDelete}>×</button>
     </div>

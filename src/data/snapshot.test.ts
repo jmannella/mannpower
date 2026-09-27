@@ -113,3 +113,15 @@ describe('snapshot', () => {
     expect(Object.keys(ds.settings).sort()).toEqual(expected)
   })
 })
+
+it('round trips the seconds and feet on a carry set', async () => {
+  await saveWorkout({
+    id: 'w-carry', date: '2026-09-27', withTrainer: true,
+    entries: [{ id: 'e1', exerciseId: 'farmers-carry', sets: [{ weight: 150, reps: 0, warmup: false, seconds: 45, feet: 120 }] }],
+    createdAt: '', updatedAt: '',
+  })
+  const ds = await exportDataset()
+  expect(ds.workouts[0].entries[0].sets[0]).toMatchObject({ weight: 150, reps: 0, seconds: 45, feet: 120 })
+  await importDataset(ds)
+  expect((await exportDataset()).workouts[0].entries[0].sets[0]).toMatchObject({ seconds: 45, feet: 120 })
+})

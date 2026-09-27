@@ -7,12 +7,13 @@ import { BigNumber } from '../components/BigNumber'
 import { Section } from '../components/Section'
 import { ChartTip } from '../components/ChartTip'
 import { useDays, useExercises, usePain, useWorkouts } from '../hooks'
-import { MUSCLE_LABELS } from '../../domain/types'
+import { MUSCLE_LABELS, type SetMeasure } from '../../domain/types'
 import { formatShort } from '../../domain/dates'
 import { exerciseHistory } from '../../stats/prs'
 import { normalizeVariation } from '../../library/variations'
 import { latestBodyWeight, relativeStrength } from '../../stats/bodyweight'
 import { flareRate } from '../../stats/pain'
+import { describeSet } from './Workout'
 
 export default function ExerciseHistory() {
   const { id = '' } = useParams()
@@ -21,6 +22,7 @@ export default function ExerciseHistory() {
   const days = useDays()
   const pain = usePain()
   const ex = exercises.find((e) => e.id === id)
+  const measure: SetMeasure = ex?.measure ?? 'reps'
   const allSessions = useMemo(() => exerciseHistory(workouts, id), [workouts, id])
   // Each variation is its own lift; the chip row picks which one the numbers and chart describe.
   const variants = useMemo(() => {
@@ -81,7 +83,7 @@ export default function ExerciseHistory() {
             <div key={s.workoutId} className="list-item">
               <div className="stack" style={{ gap: 2 }}>
                 <strong>{formatShort(s.date)}</strong>
-                <span className="muted">{s.variation ? `${s.variation} · ` : ''}{s.sets.map((x) => `${x.weight} x ${x.reps}`).join(', ')}</span>
+                <span className="muted">{s.variation ? `${s.variation} · ` : ''}{s.sets.map((x) => describeSet(x, measure)).join(', ')}</span>
               </div>
               <div className="row">
                 <span className={`pill ${s.withTrainer ? 'pill-trainer' : 'pill-solo'}`}>{s.withTrainer ? 'Trainer' : 'Solo'}</span>
