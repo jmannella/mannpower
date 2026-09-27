@@ -52,3 +52,30 @@ describe('stalledLifts keys by variant', () => {
     ])
   })
 })
+
+describe('exercises measured in time or distance', () => {
+  const exMap = exerciseMap(BUILTIN_EXERCISES)
+  const carry = (date: string, weight: number, seconds: number, feet: number) =>
+    mkWorkout(date, [{ id: 'c' + date, exerciseId: 'farmers-carry', sets: [{ weight, reps: 0, warmup: false, seconds, feet }] }])
+
+  // Same reading as reps: holding the same weight for longer is the cue to make it heavier.
+  test('a carry held longer at the same weight is the cue to add weight', () => {
+    const ws = [carry('2026-09-07', 150, 40, 100), carry('2026-09-14', 150, 55, 100)]
+    expect(stalledLifts(ws, exMap, '2026-09-07').map((s) => s.exerciseId)).toContain('farmers-carry')
+  })
+
+  test('a carry taken further at the same weight reads the same way', () => {
+    const ws = [carry('2026-09-07', 150, 40, 100), carry('2026-09-14', 150, 40, 140)]
+    expect(stalledLifts(ws, exMap, '2026-09-07').map((s) => s.exerciseId)).toContain('farmers-carry')
+  })
+
+  test('a carry identical on every count is a stall, and worth adding weight to', () => {
+    const ws = [carry('2026-09-07', 150, 40, 100), carry('2026-09-14', 150, 40, 100)]
+    expect(stalledLifts(ws, exMap, '2026-09-07').map((s) => s.exerciseId)).toContain('farmers-carry')
+  })
+
+  test('a carry that went backwards is not called stalled either', () => {
+    const ws = [carry('2026-09-07', 150, 60, 100), carry('2026-09-14', 150, 30, 100)]
+    expect(stalledLifts(ws, exMap, '2026-09-07').map((s) => s.exerciseId)).not.toContain('farmers-carry')
+  })
+})

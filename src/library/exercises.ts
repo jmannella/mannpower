@@ -9,6 +9,16 @@ function ex(id: string, name: string, primary: MuscleGroup, secondary: MuscleGro
   return aliases ? { id, name, primary, secondary, custom: false, aliases } : { id, name, primary, secondary, custom: false }
 }
 
+/** Held for time rather than counted in reps. */
+function held(id: string, name: string, primary: MuscleGroup, secondary: MuscleGroup[] = [], aliases?: string[]): Exercise {
+  return { ...ex(id, name, primary, secondary, aliases), measure: 'time' }
+}
+
+/** Carried or pushed, logged as seconds, feet or both. */
+function carried(id: string, name: string, primary: MuscleGroup, secondary: MuscleGroup[] = [], aliases?: string[]): Exercise {
+  return { ...ex(id, name, primary, secondary, aliases), measure: 'carry' }
+}
+
 export const BUILTIN_EXERCISES: Exercise[] = [
   // Chest
   ex('barbell-bench-press', 'Barbell Bench Press', 'chest', ['triceps', 'shoulders']),
@@ -106,7 +116,7 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('hip-abduction-machine', 'Hip Abduction Machine', 'glutes', [], ['abductor machine', 'outer thigh machine', 'outer thigh']),
   ex('hip-adduction-machine', 'Hip Adduction Machine', 'adductors', [], ['adductor machine', 'inner thigh machine', 'inner thigh', 'groin machine']),
   ex('cable-hip-adduction', 'Cable Hip Adduction', 'adductors', [], ['cable inner thigh', 'standing adduction']),
-  ex('copenhagen-plank', 'Copenhagen Plank', 'adductors', ['core'], ['copenhagen side plank', 'adductor plank']),
+  held('copenhagen-plank', 'Copenhagen Plank', 'adductors', ['core'], ['copenhagen side plank', 'adductor plank']),
   ex('lateral-lunge', 'Lateral Lunge', 'adductors', ['quads', 'glutes'], ['side lunge', 'cossack squat']),
   ex('kettlebell-swing', 'Kettlebell Swing', 'glutes', ['hamstrings', 'core']),
   // Calves
@@ -115,8 +125,9 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('leg-press-calf-raise', 'Leg Press Calf Raise', 'calves'),
   ex('donkey-calf-raise', 'Donkey Calf Raise', 'calves'),
   // Core
-  ex('plank', 'Plank', 'core'),
-  ex('side-plank', 'Side Plank', 'core'),
+  held('plank', 'Plank', 'core'),
+  held('side-plank', 'Side Plank', 'core'),
+  held('dead-hang', 'Dead Hang', 'back', [], ['bar hang', 'hang']),
   ex('cable-crunch', 'Cable Crunch', 'core'),
   ex('machine-crunch', 'Machine Crunch', 'core'),
   ex('hanging-leg-raise', 'Hanging Leg Raise', 'core'),
@@ -126,7 +137,7 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('bird-dog', 'Bird Dog', 'core'),
   ex('pallof-press', 'Pallof Press', 'core'),
   ex('decline-sit-up', 'Decline Sit-Up', 'core'),
-  ex('farmers-carry', "Farmer's Carry", 'core', ['back']),
+  carried('farmers-carry', "Farmer's Carry", 'core', ['back'], ['farmer walk', 'farmers walk']),
   // Added Sept 10 2026 from the first real session
   ex('trap-bar-deadlift', 'Trap Bar Deadlift', 'back', ['hamstrings', 'glutes', 'quads', 'adductors'], ['hex bar deadlift']),
   ex('kettlebell-deadlift', 'Kettlebell Deadlift', 'hamstrings', ['glutes', 'back', 'adductors']),
@@ -144,8 +155,8 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('spider-curl', 'Spider Curl', 'biceps'),
   ex('diamond-push-up', 'Diamond Push-Up', 'triceps', ['chest']),
   ex('single-arm-pushdown', 'Single-Arm Pushdown', 'triceps'),
-  ex('sled-push', 'Sled Push', 'quads', ['glutes', 'calves']),
-  ex('sled-pull', 'Sled Pull', 'hamstrings', ['glutes', 'back']),
+  carried('sled-push', 'Sled Push', 'quads', ['glutes', 'calves'], ['prowler push']),
+  carried('sled-pull', 'Sled Pull', 'hamstrings', ['glutes', 'back'], ['prowler pull', 'sled drag']),
   ex('box-jump', 'Box Jump', 'quads', ['glutes', 'calves']),
   ex('wall-ball', 'Wall Ball', 'quads', ['shoulders', 'core']),
   ex('banded-lateral-walk', 'Banded Lateral Walk', 'glutes', [], ['side band steps', 'lateral band walk']),
@@ -154,7 +165,7 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('glute-bridge', 'Glute Bridge', 'glutes', ['hamstrings']),
   ex('single-leg-calf-raise', 'Single-Leg Calf Raise', 'calves'),
   ex('medicine-ball-slam', 'Medicine Ball Slam', 'core', ['back', 'shoulders']),
-  ex('suitcase-carry', 'Suitcase Carry', 'core', ['back']),
+  carried('suitcase-carry', 'Suitcase Carry', 'core', ['back']),
   ex('mountain-climber', 'Mountain Climber', 'core'),
   ex('hanging-knee-raise', 'Hanging Knee Raise', 'core'),
   ex('sit-up', 'Sit-Up', 'core'),

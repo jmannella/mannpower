@@ -20,13 +20,26 @@ export interface Exercise {
   custom: boolean
   /** Other names people use for it, matched by search. */
   aliases?: string[]
+  /** Omitted means 'reps'. 'time' logs seconds, 'carry' logs seconds, feet or both. */
+  measure?: SetMeasure
 }
 
 export interface SetRecord {
   weight: number
   reps: number
   warmup: boolean
+  /** Seconds held or carried. Used instead of reps on time and carry exercises. */
+  seconds?: number
+  /** Feet covered. Used on carries and sleds, alongside or instead of seconds. */
+  feet?: number
 }
+
+/**
+ * How an exercise is counted. Tonnage is weight times reps, so time and carry sets contribute
+ * sets and their own progression but never tonnage, which would otherwise be swamped: a 150 lb
+ * carry held 60 seconds would read as 9000 against 1125 for five squats at 225.
+ */
+export type SetMeasure = 'reps' | 'time' | 'carry'
 
 export interface WorkoutEntry {
   id: string

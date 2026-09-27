@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { resetDb } from '../../test/resetDb'
@@ -30,8 +30,10 @@ describe('Trends', () => {
     render(<MemoryRouter><Trends /></MemoryRouter>)
     expect(await screen.findByRole('heading', { name: 'Calories' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Protein' })).toBeInTheDocument()
-    const targetStat = screen.getByText('Target kcal').closest('.big-number') as HTMLElement
-    expect(within(targetStat).getByText('2200')).toBeInTheDocument()
+    // The target comes from the settings query, not the meals one, so waiting for the Calories
+    // heading proves nothing about it. Until it lands the stat renders a dash.
+    const targetStat = (await screen.findByText('Target kcal')).closest('.big-number') as HTMLElement
+    await waitFor(() => expect(within(targetStat).getByText('2200')).toBeInTheDocument())
   })
 
   test('hides the nutrition charts until a meal is logged', async () => {

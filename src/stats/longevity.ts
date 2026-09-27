@@ -26,12 +26,15 @@ export interface BalanceSummary {
   squatSets: number
   unilateralSets: number
   carrySets: number
+  /** Seconds and feet actually covered on those carries, so the email can say what was done. */
+  carrySeconds: number
+  carryFeet: number
   totalSets: number
 }
 
 /** Volume and set counts by movement pattern for the range, using each exercise's primary group and id. */
 export function balanceSummary(workouts: Workout[], exMap: Map<string, Exercise>, from: string, to: string): BalanceSummary {
-  const b: BalanceSummary = { pushVolume: 0, pullVolume: 0, upperVolume: 0, lowerVolume: 0, hingeSets: 0, squatSets: 0, unilateralSets: 0, carrySets: 0, totalSets: 0 }
+  const b: BalanceSummary = { pushVolume: 0, pullVolume: 0, upperVolume: 0, lowerVolume: 0, hingeSets: 0, squatSets: 0, unilateralSets: 0, carrySets: 0, carrySeconds: 0, carryFeet: 0, totalSets: 0 }
   for (const w of workouts) {
     if (!inRange(w.date, from, to)) continue
     for (const e of w.entries) {
@@ -47,7 +50,12 @@ export function balanceSummary(workouts: Workout[], exMap: Map<string, Exercise>
       if (HINGE.test(ex.id)) b.hingeSets += sets.length
       if (SQUAT.test(ex.id)) b.squatSets += sets.length
       if (unilateral) b.unilateralSets += sets.length
-      if (ex.id.includes('carry')) b.carrySets += sets.length
+      // Follow how the exercise is measured rather than its name, so the sleds count as carries too.
+      if (ex.measure === 'carry') {
+        b.carrySets += sets.length
+        b.carrySeconds += sets.reduce((n, x) => n + (x.seconds ?? 0), 0)
+        b.carryFeet += sets.reduce((n, x) => n + (x.feet ?? 0), 0)
+      }
       b.totalSets += sets.length
     }
   }

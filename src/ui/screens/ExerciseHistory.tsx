@@ -7,12 +7,13 @@ import { BigNumber } from '../components/BigNumber'
 import { Section } from '../components/Section'
 import { ChartTip } from '../components/ChartTip'
 import { useDays, useExercises, usePain, useWorkouts } from '../hooks'
-import { MUSCLE_LABELS } from '../../domain/types'
+import { MUSCLE_LABELS, type SetMeasure } from '../../domain/types'
 import { formatShort } from '../../domain/dates'
 import { exerciseHistory } from '../../stats/prs'
 import { normalizeVariation } from '../../library/variations'
 import { latestBodyWeight, relativeStrength } from '../../stats/bodyweight'
 import { flareRate } from '../../stats/pain'
+import { describeSet } from '../../library/measures'
 
 export default function ExerciseHistory() {
   const { id = '' } = useParams()
@@ -21,6 +22,7 @@ export default function ExerciseHistory() {
   const days = useDays()
   const pain = usePain()
   const ex = exercises.find((e) => e.id === id)
+  const measure: SetMeasure = ex?.measure ?? 'reps'
   const allSessions = useMemo(() => exerciseHistory(workouts, id), [workouts, id])
   // Each variation is its own lift; the chip row picks which one the numbers and chart describe.
   const variants = useMemo(() => {
@@ -40,6 +42,8 @@ export default function ExerciseHistory() {
   const rel = best ? relativeStrength(best.bestE1rm, bw?.weight) : undefined
   const flare = flareRate(workouts, pain, id)
   const chart = history.map((s) => ({ date: s.date, label: formatShort(s.date), e1rm: Math.round(s.bestE1rm) }))
+  const bestSeconds = history.reduce((m, s) => Math.max(m, ...s.sets.map((x) => x.seconds ?? 0)), 0)
+  const bestFeet = history.reduce((m, s) => Math.max(m, ...s.sets.map((x) => x.feet ?? 0)), 0)
 
   return (
     <div className="screen">
@@ -52,9 +56,17 @@ export default function ExerciseHistory() {
       )}
       <div className="card">
         <div className="grid-3">
-          <BigNumber value={best ? Math.round(best.bestE1rm) : '–'} unit="lb" label="Best e1RM" tone="accent" />
+          {measure === 'reps' ? (
+            <BigNumber value={best ? Math.round(best.bestE1rm) : '–'} unit="lb" label="Best e1RM" tone="accent" />
+          ) : (
+            <BigNumber value={bestSeconds || '–'} unit="s" label="Longest" tone="accent" />
+          )}
           <BigNumber value={heaviest || '–'} unit="lb" label="Heaviest" />
-          <BigNumber value={rel === undefined ? '–' : rel.toFixed(2)} unit="x" label="Per lb body weight" tone="cyan" />
+          {measure === 'carry' ? (
+            <BigNumber value={bestFeet || '–'} unit="ft" label="Furthest" tone="cyan" />
+          ) : (
+            <BigNumber value={rel === undefined ? '–' : rel.toFixed(2)} unit="x" label="Per lb body weight" tone="cyan" />
+          )}
         </div>
         {flare.sessions > 0 && (
           <div className="muted">Pain logged on {flare.flares} of {flare.sessions} sessions{flare.rate >= 0.5 ? '. Worth raising with your trainer.' : ''}</div>
@@ -81,7 +93,7 @@ export default function ExerciseHistory() {
             <div key={s.workoutId} className="list-item">
               <div className="stack" style={{ gap: 2 }}>
                 <strong>{formatShort(s.date)}</strong>
-                <span className="muted">{s.variation ? `${s.variation} · ` : ''}{s.sets.map((x) => `${x.weight} x ${x.reps}`).join(', ')}</span>
+                <span className="muted">{s.variation ? `${s.variation} · ` : ''}{s.sets.map((x) => describeSet(x, measure)).join(', ')}</span>
               </div>
               <div className="row">
                 <span className={`pill ${s.withTrainer ? 'pill-trainer' : 'pill-solo'}`}>{s.withTrainer ? 'Trainer' : 'Solo'}</span>

@@ -123,3 +123,29 @@ describe('adductors', () => {
     }
   })
 })
+
+describe('how exercises are measured', () => {
+  const byId = (id: string) => BUILTIN_EXERCISES.find((e) => e.id === id)
+
+  test('holds are measured in time', () => {
+    for (const id of ['plank', 'side-plank', 'copenhagen-plank', 'dead-hang']) {
+      expect(byId(id)?.measure).toBe('time')
+    }
+  })
+
+  test('carries and sleds are measured as carries', () => {
+    for (const id of ['farmers-carry', 'suitcase-carry', 'sled-push', 'sled-pull']) {
+      expect(byId(id)?.measure).toBe('carry')
+    }
+  })
+
+  test('everything else is left on reps, which stays the unstated default', () => {
+    for (const id of ['back-squat', 'barbell-bench-press', 'hanging-leg-raise', 'sit-up', 'mountain-climber']) {
+      expect(byId(id)?.measure).toBeUndefined()
+    }
+  })
+
+  test('the new hang is findable by what people call it', () => {
+    expect(searchExercises(BUILTIN_EXERCISES, 'hang').map((e) => e.id)).toContain('dead-hang')
+  })
+})

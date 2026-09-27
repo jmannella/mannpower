@@ -234,3 +234,117 @@ describe('Workout: variations', () => {
     })
   })
 })
+
+describe('exercises that are not measured in reps', () => {
+  const addExercise = async (query: string, name: string) => {
+    await userEvent.type(await screen.findByLabelText('Search exercises'), query)
+    await userEvent.click(await screen.findByRole('button', { name }))
+  }
+
+  test('a carry logs seconds and feet instead of reps', async () => {
+    renderWorkout()
+    await addExercise('farmer', "Farmer's Carry")
+    await userEvent.click(await screen.findByRole('button', { name: 'Add set' }))
+
+    // The row arrives through a live query, so wait for it before asserting what is not in it.
+    await screen.findByLabelText('Set 1 weight')
+    expect(screen.queryByLabelText('Set 1 reps')).toBeNull()
+    await userEvent.clear(screen.getByLabelText('Set 1 weight'))
+    await userEvent.type(screen.getByLabelText('Set 1 weight'), '150')
+    await userEvent.clear(screen.getByLabelText('Set 1 seconds'))
+    await userEvent.type(screen.getByLabelText('Set 1 seconds'), '45')
+    await userEvent.clear(screen.getByLabelText('Set 1 feet'))
+    await userEvent.type(screen.getByLabelText('Set 1 feet'), '120')
+    await userEvent.tab()
+
+    await waitFor(async () => {
+      const w = await getWorkoutByDate('2026-09-08')
+      const set = w?.entries[0].sets[0]
+      expect(set).toMatchObject({ weight: 150, seconds: 45, feet: 120 })
+      expect(set?.reps).toBe(0)
+    })
+  })
+
+  test('a plank logs seconds only, with no feet column', async () => {
+    renderWorkout()
+    await addExercise('plank', 'Plank')
+    await userEvent.click(await screen.findByRole('button', { name: 'Add set' }))
+
+    await screen.findByLabelText('Set 1 seconds')
+    expect(screen.queryByLabelText('Set 1 reps')).toBeNull()
+    expect(screen.queryByLabelText('Set 1 feet')).toBeNull()
+    await userEvent.clear(screen.getByLabelText('Set 1 seconds'))
+    await userEvent.type(screen.getByLabelText('Set 1 seconds'), '60')
+    await userEvent.tab()
+
+    await waitFor(async () => {
+      expect((await getWorkoutByDate('2026-09-08'))?.entries[0].sets[0]).toMatchObject({ seconds: 60 })
+    })
+  })
+
+  test('a normal lift still logs reps and shows no seconds field', async () => {
+    renderWorkout()
+    await addExercise('back squat', 'Back Squat')
+    await userEvent.click(await screen.findByRole('button', { name: 'Add set' }))
+    expect(await screen.findByLabelText('Set 1 reps')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Set 1 seconds')).toBeNull()
+  })
+
+  test('a carry counts as a set but adds no tonnage to the session', async () => {
+    await saveWorkout({
+      id: 'w1', date: '2026-09-08', withTrainer: true,
+      entries: [
+        { id: 'a', exerciseId: 'farmers-carry', sets: [{ weight: 150, reps: 0, warmup: false, seconds: 45, feet: 120 }] },
+        { id: 'b', exerciseId: 'back-squat', sets: [{ weight: 225, reps: 5, warmup: false }] },
+      ],
+      createdAt: '', updatedAt: '',
+    })
+    renderWorkout()
+    expect(await screen.findByText("Farmer's Carry")).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Finish' }))
+    // 225 x 5 is the whole of the tonnage. The carry is a set, and contributes none of it.
+    expect(await screen.findByText('1125')).toBeInTheDocument()
+    expect(screen.getByText('Total volume')).toBeInTheDocument()
+  })
+})
+
+describe('a legacy carry logged with reps', () => {
+  test('does not pass its reps on to a new set, where they would be invisible and add tonnage', async () => {
+    // How carries had to be logged before they could record seconds: a made up rep count.
+    await saveWorkout({
+      id: 'old', date: '2026-09-01', withTrainer: true,
+      entries: [{ id: 'a', exerciseId: 'farmers-carry', sets: [{ weight: 150, reps: 10, warmup: false }] }],
+      createdAt: '', updatedAt: '',
+    })
+    renderWorkout()
+    await userEvent.type(await screen.findByLabelText('Search exercises'), 'farmer')
+    await userEvent.click(await screen.findByRole('button', { name: "Farmer's Carry" }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add set' }))
+    await screen.findByLabelText('Set 1 seconds')
+
+    await waitFor(async () => {
+      const set = (await getWorkoutByDate('2026-09-08'))?.entries[0].sets[0]
+      expect(set?.reps).toBe(0)
+      expect(set?.weight).toBe(150)
+    })
+  })
+
+  test('editing a carry set clears any reps it was carrying', async () => {
+    await saveWorkout({
+      id: 'today', date: '2026-09-08', withTrainer: true,
+      entries: [{ id: 'a', exerciseId: 'farmers-carry', sets: [{ weight: 150, reps: 10, warmup: false }] }],
+      createdAt: '', updatedAt: '',
+    })
+    renderWorkout()
+    const secs = await screen.findByLabelText('Set 1 seconds')
+    await userEvent.clear(secs)
+    await userEvent.type(secs, '45')
+    await userEvent.tab()
+
+    await waitFor(async () => {
+      const set = (await getWorkoutByDate('2026-09-08'))?.entries[0].sets[0]
+      expect(set?.seconds).toBe(45)
+      expect(set?.reps).toBe(0)
+    })
+  })
+})

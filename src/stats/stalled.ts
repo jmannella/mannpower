@@ -1,4 +1,4 @@
-import type { Exercise, Workout } from '../domain/types'
+import type { Exercise, SetRecord, Workout } from '../domain/types'
 import { suggestedIncrement } from '../library/exercises'
 import { normalizeVariation } from '../library/variations'
 import { exerciseHistory } from './prs'
@@ -13,8 +13,10 @@ export interface StalledLift {
 }
 
 /**
- * An exercise is stalled when its last two sessions used the same top working weight
- * and every working set in the latest session matched or beat the previous session's reps.
+ * An exercise is stalled when its last two sessions used the same top working weight and no
+ * working set went backwards. Getting more reps at the same weight still counts as stalled on
+ * purpose: it is the signal to add weight. Carries and holds have no reps and progress by
+ * seconds or feet, so those are compared instead, and the same reading applies to them.
  * Only exercises whose latest session is on or after `since` are considered.
  */
 export function stalledLifts(workouts: Workout[], exMap: Map<string, Exercise>, since: string): StalledLift[] {
@@ -35,7 +37,8 @@ export function stalledLifts(workouts: Workout[], exMap: Map<string, Exercise>, 
     if (last.date < since) continue
     if (last.topWeight !== prev.topWeight || last.topWeight <= 0) continue
     if (last.sets.length < prev.sets.length) continue
-    const held = prev.sets.every((p, i) => last.sets[i].reps >= p.reps)
+    const measures = [(x: SetRecord) => x.reps, (x: SetRecord) => x.seconds ?? 0, (x: SetRecord) => x.feet ?? 0]
+    const held = prev.sets.every((p, i) => measures.every((m) => m(last.sets[i]) >= m(p)))
     if (!held) continue
     out.push({ exerciseId: id, variation, topWeight: last.topWeight, increment: suggestedIncrement(ex), lastDate: last.date })
   }
