@@ -307,3 +307,44 @@ describe('exercises that are not measured in reps', () => {
     expect(screen.getByText('Total volume')).toBeInTheDocument()
   })
 })
+
+describe('a legacy carry logged with reps', () => {
+  test('does not pass its reps on to a new set, where they would be invisible and add tonnage', async () => {
+    // How carries had to be logged before they could record seconds: a made up rep count.
+    await saveWorkout({
+      id: 'old', date: '2026-09-01', withTrainer: true,
+      entries: [{ id: 'a', exerciseId: 'farmers-carry', sets: [{ weight: 150, reps: 10, warmup: false }] }],
+      createdAt: '', updatedAt: '',
+    })
+    renderWorkout()
+    await userEvent.type(await screen.findByLabelText('Search exercises'), 'farmer')
+    await userEvent.click(await screen.findByRole('button', { name: "Farmer's Carry" }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add set' }))
+    await screen.findByLabelText('Set 1 seconds')
+
+    await waitFor(async () => {
+      const set = (await getWorkoutByDate('2026-09-08'))?.entries[0].sets[0]
+      expect(set?.reps).toBe(0)
+      expect(set?.weight).toBe(150)
+    })
+  })
+
+  test('editing a carry set clears any reps it was carrying', async () => {
+    await saveWorkout({
+      id: 'today', date: '2026-09-08', withTrainer: true,
+      entries: [{ id: 'a', exerciseId: 'farmers-carry', sets: [{ weight: 150, reps: 10, warmup: false }] }],
+      createdAt: '', updatedAt: '',
+    })
+    renderWorkout()
+    const secs = await screen.findByLabelText('Set 1 seconds')
+    await userEvent.clear(secs)
+    await userEvent.type(secs, '45')
+    await userEvent.tab()
+
+    await waitFor(async () => {
+      const set = (await getWorkoutByDate('2026-09-08'))?.entries[0].sets[0]
+      expect(set?.seconds).toBe(45)
+      expect(set?.reps).toBe(0)
+    })
+  })
+})

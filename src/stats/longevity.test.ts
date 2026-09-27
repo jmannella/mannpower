@@ -135,3 +135,24 @@ describe('adductors count as lower body', () => {
     expect(b.upperVolume).toBe(0)
   })
 })
+
+describe('carries in the balance summary', () => {
+  const exMap = exerciseMap(BUILTIN_EXERCISES)
+  const entry = (id: string, exerciseId: string, sets: object[]) => ({ id, exerciseId, sets })
+
+  test('counts the sleds as carries, since that is how they are measured', () => {
+    const w = [mkWorkout('2026-09-14', [
+      entry('a', 'sled-push', [{ weight: 180, reps: 0, warmup: false, feet: 100 }]),
+      entry('b', 'farmers-carry', [{ weight: 150, reps: 0, warmup: false, seconds: 45, feet: 120 }]),
+    ] as never)]
+    const b = balanceSummary(w, exMap, '2026-09-14', '2026-09-20')
+    expect(b.carrySets).toBe(2)
+    expect(b.carryFeet).toBe(220)
+    expect(b.carrySeconds).toBe(45)
+  })
+
+  test('does not count a squat as a carry just because of its name', () => {
+    const w = [mkWorkout('2026-09-14', [mkEntry('back-squat', [[225, 5]])])]
+    expect(balanceSummary(w, exMap, '2026-09-14', '2026-09-20').carrySets).toBe(0)
+  })
+})

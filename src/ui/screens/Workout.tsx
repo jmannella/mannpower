@@ -12,6 +12,7 @@ import { newId } from '../../domain/ids'
 import { formatShort, nowISO, todayISO } from '../../domain/dates'
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type Exercise, type MuscleGroup, type SetMeasure, type SetRecord, type Workout as WorkoutRecord, type WorkoutEntry } from '../../domain/types'
 import { exerciseMap, workoutVolume } from '../../stats/sets'
+import { describeSet, forMeasure } from '../../library/measures'
 import { exerciseHistory, prsForWorkout } from '../../stats/prs'
 import { workoutMuscleLoad } from '../../stats/muscle'
 import { flareRate } from '../../stats/pain'
@@ -264,11 +265,11 @@ export default function Workout() {
             )}
             {entry.sets.map((s, i) => (
               <SetRow key={i} index={i} set={s} measure={measure}
-                onChange={(nextSetValue) => updateSets(entry.id, (sets) => sets.map((x, k) => (k === i ? nextSetValue : x)))}
+                onChange={(nextSetValue) => updateSets(entry.id, (sets) => sets.map((x, k) => (k === i ? forMeasure(nextSetValue, measure) : x)))}
                 onDelete={() => updateSets(entry.id, (sets) => sets.filter((_, k) => k !== i))} />
             ))}
             <div className="row">
-              <button type="button" className="btn" onClick={() => updateSets(entry.id, (sets) => [...sets, nextSet({ ...entry, sets }, last?.sets)])}>Add set</button>
+              <button type="button" className="btn" onClick={() => updateSets(entry.id, (sets) => [...sets, nextSet({ ...entry, sets }, measure, last?.sets)])}>Add set</button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPainFor({ exerciseId: entry.exerciseId, name })}>Log pain</button>
               {entry.supersetWithNext ? (
                 <button type="button" className="btn btn-ghost btn-sm" aria-label={`Unlink ${name} superset`} onClick={() => setSuperset(entry.id, false)}>Unlink</button>
@@ -312,19 +313,12 @@ function SwapSheet({ current, exercises, onClose, onPick }: { current: string; e
   )
 }
 
-function nextSet(entry: WorkoutEntry, lastSets?: SetRecord[]): SetRecord {
+function nextSet(entry: WorkoutEntry, measure: SetMeasure, lastSets?: SetRecord[]): SetRecord {
   const prev = entry.sets.at(-1)
-  if (prev) return { ...prev, warmup: false }
+  if (prev) return forMeasure({ ...prev, warmup: false }, measure)
   const l = lastSets?.[0]
-  return l ? { weight: l.weight, reps: l.reps, seconds: l.seconds, feet: l.feet, warmup: false } : { weight: 0, reps: 0, warmup: false }
-}
-
-/** One set in the units its exercise is measured in, for the "last time" line. */
-export function describeSet(s: SetRecord, measure: SetMeasure): string {
-  if (measure === 'reps') return `${s.weight} x ${s.reps}`
-  const parts = [s.seconds ? `${s.seconds}s` : '', s.feet ? `${s.feet} ft` : ''].filter((p) => p)
-  const work = parts.join(' ') || '0s'
-  return s.weight > 0 ? `${s.weight} lb ${work}` : work
+  const seed: SetRecord = l ? { ...l, warmup: false } : { weight: 0, reps: 0, warmup: false }
+  return forMeasure(seed, measure)
 }
 
 function SetRow({ index, set, measure, onChange, onDelete }: { index: number; set: SetRecord; measure: SetMeasure; onChange: (s: SetRecord) => void; onDelete: () => void }) {

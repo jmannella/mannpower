@@ -13,7 +13,7 @@ import { exerciseHistory } from '../../stats/prs'
 import { normalizeVariation } from '../../library/variations'
 import { latestBodyWeight, relativeStrength } from '../../stats/bodyweight'
 import { flareRate } from '../../stats/pain'
-import { describeSet } from './Workout'
+import { describeSet } from '../../library/measures'
 
 export default function ExerciseHistory() {
   const { id = '' } = useParams()
@@ -42,6 +42,8 @@ export default function ExerciseHistory() {
   const rel = best ? relativeStrength(best.bestE1rm, bw?.weight) : undefined
   const flare = flareRate(workouts, pain, id)
   const chart = history.map((s) => ({ date: s.date, label: formatShort(s.date), e1rm: Math.round(s.bestE1rm) }))
+  const bestSeconds = history.reduce((m, s) => Math.max(m, ...s.sets.map((x) => x.seconds ?? 0)), 0)
+  const bestFeet = history.reduce((m, s) => Math.max(m, ...s.sets.map((x) => x.feet ?? 0)), 0)
 
   return (
     <div className="screen">
@@ -54,9 +56,17 @@ export default function ExerciseHistory() {
       )}
       <div className="card">
         <div className="grid-3">
-          <BigNumber value={best ? Math.round(best.bestE1rm) : '–'} unit="lb" label="Best e1RM" tone="accent" />
+          {measure === 'reps' ? (
+            <BigNumber value={best ? Math.round(best.bestE1rm) : '–'} unit="lb" label="Best e1RM" tone="accent" />
+          ) : (
+            <BigNumber value={bestSeconds || '–'} unit="s" label="Longest" tone="accent" />
+          )}
           <BigNumber value={heaviest || '–'} unit="lb" label="Heaviest" />
-          <BigNumber value={rel === undefined ? '–' : rel.toFixed(2)} unit="x" label="Per lb body weight" tone="cyan" />
+          {measure === 'carry' ? (
+            <BigNumber value={bestFeet || '–'} unit="ft" label="Furthest" tone="cyan" />
+          ) : (
+            <BigNumber value={rel === undefined ? '–' : rel.toFixed(2)} unit="x" label="Per lb body weight" tone="cyan" />
+          )}
         </div>
         {flare.sessions > 0 && (
           <div className="muted">Pain logged on {flare.flares} of {flare.sessions} sessions{flare.rate >= 0.5 ? '. Worth raising with your trainer.' : ''}</div>

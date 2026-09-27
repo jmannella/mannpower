@@ -18,6 +18,7 @@ import {
   mainLiftBenchmarks, strengthChange4w, type BalanceSummary, type BodyCompSignal, type LiftBenchmark,
 } from './longevity'
 import { ageBand } from '../library/standards'
+import { describeDuration } from '../library/measures'
 import { sleepWeek, type SleepWeek } from './sleep'
 import { readinessWeek, type ReadinessWeek } from './readiness'
 import { restingHrTrend, type RestingHrTrend } from './restingHr'
@@ -237,7 +238,8 @@ export function digestMarkdown(d: Digest): string {
   lines.push(`- Upper vs lower volume this week: ${n(w.upperVolume)} vs ${n(w.lowerVolume)} lb; four weeks: ${n(f.upperVolume)} vs ${n(f.lowerVolume)} lb`)
   lines.push(`- Hinge vs squat pattern sets, four weeks: ${f.hingeSets} vs ${f.squatSets}`)
   lines.push(`- Single leg or single arm sets, four weeks: ${f.unilateralSets} of ${f.totalSets} (balance and fall prevention)`)
-  lines.push(`- Loaded carry sets, four weeks: ${f.carrySets} (grip strength tracks with healthy ageing)`)
+  const carryWork = [f.carrySeconds > 0 ? describeDuration(f.carrySeconds) : '', f.carryFeet > 0 ? `${f.carryFeet} feet` : ''].filter((x) => x).join(' and ')
+  lines.push(`- Loaded carry sets, four weeks: ${f.carrySets}${carryWork ? `, covering ${carryWork}` : ''} (grip strength tracks with healthy ageing)`)
   lines.push(`- Muscle groups over 10 days untrained: ${d.neglectedGroups.map((g) => `${MUSCLE_LABELS[g]} (${d.daysSinceGroup[g]} days)`).join(', ') || 'none'}`)
   const proteinFact = d.nutrition.enoughData && d.nutrition.proteinDaysHit !== undefined ? `, protein target hit on ${d.nutrition.proteinDaysHit} of ${d.nutrition.completeDays} complete days` : ''
   const signed = (x: number) => `${x > 0 ? '+' : ''}${x.toFixed(2)}`
