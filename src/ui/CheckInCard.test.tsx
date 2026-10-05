@@ -51,6 +51,34 @@ describe('CheckInCard', () => {
     expect(screen.queryByLabelText('Waist (around the navel)')).toBeNull()
   })
 
+  test('keeps the waist row on the day it was recorded so the value can be corrected', () => {
+    const recorded = day({ date: '2026-09-20', waist: 122.5 })
+    render(<CheckInCard date="2026-09-20" day={recorded} days={[recorded]} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
+    expect(screen.getByLabelText('Waist (around the navel)')).toHaveValue('122.5')
+  })
+
+  test('clears a recorded waist when the field is blanked', async () => {
+    const onPatch = vi.fn()
+    const recorded = day({ date: '2026-09-20', waist: 38 })
+    render(<CheckInCard date="2026-09-20" day={recorded} days={[recorded]} supplements={supps} onPatch={onPatch} onToggleSupplement={vi.fn()} />)
+    await userEvent.clear(screen.getByLabelText('Waist (around the navel)'))
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith({ waist: undefined })
+  })
+
+  test('turns away a waist outside 20 to 80 inches, such as a centimetre reading', async () => {
+    const onPatch = vi.fn()
+    render(<CheckInCard date="2026-09-23" day={day()} days={[day()]} supplements={supps} onPatch={onPatch} onToggleSupplement={vi.fn()} />)
+    const input = screen.getByLabelText('Waist (around the navel)') as HTMLInputElement
+    await userEvent.type(input, '122.5')
+    await userEvent.tab()
+    expect(onPatch).not.toHaveBeenCalled()
+    expect(input.value).toBe('')
+    await userEvent.type(input, '48.2')
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith({ waist: 48.2 })
+  })
+
   test('uses the viewed date for the waist rule, not today', () => {
     const days = [day({ date: '2026-09-01', waist: 38 }), day({ date: '2026-09-22', waist: 37.5 })]
     render(<CheckInCard date="2026-09-05" day={day({ date: '2026-09-05' })} days={days} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
@@ -91,6 +119,13 @@ describe('CheckInCard monthly measurements', () => {
     render(<CheckInCard date="2026-09-23" day={day()} days={days} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
     expect(screen.queryByLabelText('Neck (below the larynx)')).toBeNull()
     expect(screen.getByLabelText('Hip (widest point)')).toBeInTheDocument()
+  })
+
+  test('keeps neck and hip rows on the day they were recorded', () => {
+    const recorded = day({ date: '2026-09-01', neck: 15.5, hip: 41 })
+    render(<CheckInCard date="2026-09-01" day={recorded} days={[recorded]} supplements={supps} onPatch={vi.fn()} onToggleSupplement={vi.fn()} />)
+    expect(screen.getByLabelText('Neck (below the larynx)')).toHaveValue('15.5')
+    expect(screen.getByLabelText('Hip (widest point)')).toHaveValue('41')
   })
 
   test('commits a typed neck measurement to the viewed date', async () => {

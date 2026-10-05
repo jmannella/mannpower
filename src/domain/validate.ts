@@ -19,6 +19,16 @@ const optAmount = (v: unknown): boolean => v === undefined || isAmount(v)
 const inRangeOpt = (v: unknown, lo: number, hi: number): boolean =>
   v === undefined || (typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi)
 
+/**
+ * Accepted tape measurements in inches, shared by the validator and the check in card so a
+ * centimetre reading is turned away at the keyboard instead of failing the weekly report later.
+ */
+export const MEASUREMENT_RANGE = {
+  waist: { min: 20, max: 80 },
+  neck: { min: 8, max: 30 },
+  hip: { min: 20, max: 80 },
+} as const
+
 function isSupplement(s: unknown): s is Supplement {
   return isObj(s) && typeof s.id === 'string' && typeof s.name === 'string' && typeof s.active === 'boolean'
     && (s.addedOn === undefined || (typeof s.addedOn === 'string' && DATE_RE.test(s.addedOn)))
@@ -64,8 +74,10 @@ export function validateDataset(x: unknown): Validation {
       const ok = isObj(d) && typeof d.date === 'string' && Array.isArray(d.cardio)
         && inRangeOpt(d.sleepScore, 0, 100) && inRangeOpt(d.readiness, 0, 100)
         && inRangeOpt(d.sleepHours, 0, 24) && inRangeOpt(d.restingHr, 30, 200)
-        && inRangeOpt(d.waterGlasses, 0, 40) && inRangeOpt(d.waist, 20, 80)
-        && inRangeOpt(d.neck, 8, 30) && inRangeOpt(d.hip, 20, 80)
+        && inRangeOpt(d.waterGlasses, 0, 40)
+        && inRangeOpt(d.waist, MEASUREMENT_RANGE.waist.min, MEASUREMENT_RANGE.waist.max)
+        && inRangeOpt(d.neck, MEASUREMENT_RANGE.neck.min, MEASUREMENT_RANGE.neck.max)
+        && inRangeOpt(d.hip, MEASUREMENT_RANGE.hip.min, MEASUREMENT_RANGE.hip.max)
         && (d.supplementsTaken === undefined
           || (Array.isArray(d.supplementsTaken) && d.supplementsTaken.every((s) => typeof s === 'string')))
       if (!ok) errors.push(`days[${i}] is malformed.`)

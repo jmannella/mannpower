@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NumberField } from './components/NumberField'
 import { Chip } from './components/Chip'
 import { needsMonthlyMeasurement, needsWaist } from '../stats/measurements'
+import { MEASUREMENT_RANGE } from '../domain/validate'
 import type { DayRecord, Supplement } from '../domain/types'
 
 interface Props {
@@ -25,9 +26,11 @@ export function CheckInCard({ date, day, days, supplements, onPatch, onToggleSup
   const [open, setOpen] = useState(false)
   const taken = day.supplementsTaken ?? []
   const active = supplements.filter((s) => s.active)
-  const waistDue = needsWaist(days, date)
-  const neckDue = needsMonthlyMeasurement(days, date, 'neck')
-  const hipDue = needsMonthlyMeasurement(days, date, 'hip')
+  // A measurement row stays on the card for the day it was recorded, so a slip such as a
+  // centimetre reading can be corrected or cleared instead of being locked in until next time.
+  const waistDue = needsWaist(days, date) || day.waist !== undefined
+  const neckDue = needsMonthlyMeasurement(days, date, 'neck') || day.neck !== undefined
+  const hipDue = needsMonthlyMeasurement(days, date, 'hip') || day.hip !== undefined
 
   if (complete && !open) {
     const parts = [
@@ -51,12 +54,12 @@ export function CheckInCard({ date, day, days, supplements, onPatch, onToggleSup
         {complete && <button type="button" className="btn btn-sm" onClick={() => setOpen(false)}>Done</button>}
       </div>
       {waistDue && (
-        <NumberField label="Waist (around the navel)" value={day.waist} onCommit={(v) => onPatch({ waist: v })} suffix="in" />
+        <NumberField label="Waist (around the navel)" value={day.waist} onCommit={(v) => onPatch({ waist: v })} suffix="in" {...MEASUREMENT_RANGE.waist} />
       )}
       {(neckDue || hipDue) && (
         <div className="grid-2">
-          {neckDue && <NumberField label="Neck (below the larynx)" value={day.neck} onCommit={(v) => onPatch({ neck: v })} suffix="in" />}
-          {hipDue && <NumberField label="Hip (widest point)" value={day.hip} onCommit={(v) => onPatch({ hip: v })} suffix="in" />}
+          {neckDue && <NumberField label="Neck (below the larynx)" value={day.neck} onCommit={(v) => onPatch({ neck: v })} suffix="in" {...MEASUREMENT_RANGE.neck} />}
+          {hipDue && <NumberField label="Hip (widest point)" value={day.hip} onCommit={(v) => onPatch({ hip: v })} suffix="in" {...MEASUREMENT_RANGE.hip} />}
         </div>
       )}
       <div className="grid-2">

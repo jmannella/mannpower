@@ -8,14 +8,17 @@ interface Props {
   placeholder?: string
   suffix?: string
   step?: number
+  /** Inclusive bounds. A value outside them is treated like any other invalid entry and the previous value is restored. */
+  min?: number
+  max?: number
   allowDecimal?: boolean
   autoFocus?: boolean
   big?: boolean
   className?: string
 }
 
-/** Numeric input that commits on blur or Enter. Blank clears. Invalid or negative input restores the previous value. */
-export function NumberField({ label, ariaLabel, value, onCommit, placeholder, suffix, step, allowDecimal = true, autoFocus, big, className }: Props) {
+/** Numeric input that commits on blur or Enter. Blank clears. Invalid, negative or out of range input restores the previous value. */
+export function NumberField({ label, ariaLabel, value, onCommit, placeholder, suffix, step, min, max, allowDecimal = true, autoFocus, big, className }: Props) {
   const [text, setText] = useState(value === undefined ? '' : String(value))
   // The initial text above already reflects the mount time value, so the very first run of this
   // effect has nothing to do. Skipping it matters: React defers passive effects, and under load
@@ -35,6 +38,7 @@ export function NumberField({ label, ariaLabel, value, onCommit, placeholder, su
     }
     const n = Number(trimmed)
     const valid = Number.isFinite(n) && n >= 0 && (allowDecimal || Number.isInteger(n))
+      && (min === undefined || n >= min) && (max === undefined || n <= max)
     if (!valid) {
       setText(value === undefined ? '' : String(value))
       return

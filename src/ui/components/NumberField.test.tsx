@@ -19,6 +19,22 @@ describe('NumberField', () => {
     expect(input.value).toBe('240')
   })
 
+  test('restores the previous value when the entry is outside min and max', async () => {
+    const onCommit = vi.fn()
+    render(<NumberField label="Waist" value={38} onCommit={onCommit} min={20} max={80} />)
+    const input = screen.getByLabelText('Waist') as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, '122.5')
+    await userEvent.tab()
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(input.value).toBe('38')
+
+    await userEvent.clear(input)
+    await userEvent.type(input, '80')
+    await userEvent.tab()
+    expect(onCommit).toHaveBeenCalledWith(80)
+  })
+
   test('blank commits undefined and integers only when allowDecimal is false', async () => {
     const onCommit = vi.fn()
     render(<NumberField label="Steps" value={5000} onCommit={onCommit} allowDecimal={false} />)
